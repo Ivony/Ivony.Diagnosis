@@ -19,7 +19,7 @@ namespace Ivony.Diagnosis
     {
       this.logger = logger;
 
-      var timer = new System.Timers.Timer( 1000 );
+      var timer = new System.Timers.Timer( 5000 );
       timer.Elapsed += ( sender, args ) =>
       {
 

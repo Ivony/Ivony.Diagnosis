@@ -24,7 +24,7 @@ namespace Ivony.Diagnosis
     public HttpPerformanceDelegatingHandler( ILogger logger, HttpMessageHandler handler ) : base( handler )
     {
 
-      var timer = new System.Timers.Timer( 1000 );
+      var timer = new System.Timers.Timer( 5000 );
       timer.Elapsed += ( sender, args ) =>
       {
 

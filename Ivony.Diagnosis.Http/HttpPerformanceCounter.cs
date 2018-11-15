@@ -7,6 +7,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Ivony.Diagnosis
 {
+  /// <summary>
+  /// 定义 HTTP 性能计数器
+  /// </summary>
   public class HttpPerformanceCounter
   {
     private ConcurrentBag<Entry> _counter = new ConcurrentBag<Entry>();
@@ -21,12 +24,24 @@ namespace Ivony.Diagnosis
 
 
 
+    private DateTime _startTime;
+
+    private DateTime _stopTime;
+
+    /// <summary>
+    /// 创建 HttpPerformanceCounter 实例
+    /// </summary>
     public HttpPerformanceCounter()
     {
-
+      _startTime = DateTime.UtcNow;
     }
 
 
+    /// <summary>
+    /// 当请求完成时调用此方法记录
+    /// </summary>
+    /// <param name="elapsed">响应时间（毫秒）</param>
+    /// <param name="statusCode">响应状态码</param>
     public void OnRequestCompleted( long elapsed, int statusCode )
     {
       if ( _availables == false )
@@ -40,18 +55,35 @@ namespace Ivony.Diagnosis
 
     private bool _availables = true;
 
+    /// <summary>
+    /// 停止记录
+    /// </summary>
     public void Stop()
     {
-      _availables = false;
+      if ( _availables )
+      {
+        lock ( this )
+        {
+          if ( _availables )
+          {
+            _stopTime = DateTime.UtcNow;
+            _availables = false;
+          }
+        }
+      }
     }
 
 
 
-    public class Report
+    public class Report : IHttpPerformanceReport
     {
 
       public Report( HttpPerformanceCounter counter )
       {
+
+        StartTime = counter._startTime;
+        StopTime = counter._stopTime;
+
         var data = counter._counter.ToArray();
 
         TotalRequests = data.Length;
@@ -66,54 +98,55 @@ namespace Ivony.Diagnosis
           var errors = (double) data.Count( entry => entry.statusCode >= 300 );
 
           ErrorRate = errors / TotalRequests;
+          var success = TotalRequests - errors;
+          RequestPerSecond = success / (StopTime - StartTime).TotalSeconds;
         }
 
         else
           HttpStatusReport = new Dictionary<int, int>();
       }
 
-      /// <summary>
-      /// 总请求数
-      /// </summary>
+
+
+
       public int TotalRequests { get; }
 
-      /// <summary>
-      /// 平均处理时间
-      /// </summary>
-      public TimeSpan AverageElapse { get; }
+      public double RequestPerSecond { get; }
 
-      /// <summary>
-      /// 最长处理时间
-      /// </summary>
-      public TimeSpan MaxElapse { get; }
-
-      /// <summary>
-      /// 最短处理时间
-      /// </summary>
-      public TimeSpan MinElapse { get; }
-
-
-      /// <summary>
-      /// HTTP 各状态码计数
-      /// </summary>
       public IDictionary<int, int> HttpStatusReport { get; }
 
 
-      /// <summary>
-      /// 错误率
-      /// </summary>
+
+      public DateTime StartTime { get; }
+
+      public DateTime StopTime { get; }
+
+
+      public TimeSpan AverageElapse { get; }
+
+      public TimeSpan MaxElapse { get; }
+
+      public TimeSpan MinElapse { get; }
+
       public double ErrorRate { get; }
+
 
       public override string ToString()
       {
-        return $"total: {TotalRequests}, avg elapse: {AverageElapse.TotalMilliseconds:F2}ms, error rate: {ErrorRate:P2}";
-      }
+        var report = $"total: {TotalRequests}, rps: {RequestPerSecond:F0}, avg: {AverageElapse.TotalMilliseconds:F0}ms, max: {MaxElapse.TotalMilliseconds:F0}ms, min: {MinElapse.TotalMilliseconds:F2}ms, error rate: {ErrorRate:P2}\n";
 
+        report += string.Join( ", ", HttpStatusReport.Select( item => $"HTTP{item.Key}: {item.Value}" ) );
+
+        return report;
+
+      }
     }
 
 
     public Report CreateReport()
     {
+
+      Stop();
 
       return new Report( this );
 
