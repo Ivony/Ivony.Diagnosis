@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Ivony.Diagnosis.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Ivony.Diagnosis.LoadTestConsole
@@ -24,7 +25,7 @@ namespace Ivony.Diagnosis.LoadTestConsole
         size = int.Parse( args[1] );
 
 
-      var degree = 500;
+      var degree = 10;
       if ( args.Length > 2 )
         degree = int.Parse( args[2] );
 

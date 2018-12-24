@@ -6,29 +6,21 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Ivony.Diagnosis
+namespace Ivony.Diagnosis.Http
 {
   public class HttpPerformanceMiddleware : IMiddleware
   {
     private static HttpPerformanceCounter counter = new HttpPerformanceCounter();
 
-    private ILogger logger;
+    private readonly ILogger logger;
 
 
     public HttpPerformanceMiddleware( ILogger<HttpPerformanceMiddleware> logger )
     {
       this.logger = logger;
 
-      var timer = new System.Timers.Timer( 5000 );
-      timer.Elapsed += ( sender, args ) =>
-      {
-
-        var old = counter;
-        counter = new HttpPerformanceCounter();
-        logger.LogInformation( old.CreateReport().ToString() );
-      };
-
-      timer.Start();
+      counter.Subscribe( report => logger.LogInformation( report.ToString() ) );
+      counter.Start();
 
     }
 

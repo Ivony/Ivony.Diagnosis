@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Ivony.Diagnosis
+namespace Ivony.Diagnosis.Http
 {
   /// <summary>
   /// HTTP 性能报告
   /// </summary>
-  public interface IHttpPerformanceReport
+  public interface IHttpPerformanceReport : IPerformanceReport
   {
 
     /// <summary>
@@ -20,16 +20,6 @@ namespace Ivony.Diagnosis
     /// </summary>
     IDictionary<int, int> HttpStatusReport { get; }
 
-
-    /// <summary>
-    /// 性能报告开始时间
-    /// </summary>
-    DateTime StartTime { get; }
-
-    /// <summary>
-    /// 性能报告结束时间
-    /// </summary>
-    DateTime StopTime { get; }
 
     /// <summary>
     /// 平均处理时间

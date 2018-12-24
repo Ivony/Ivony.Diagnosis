@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 
-namespace Ivony.Diagnosis
+namespace Ivony.Diagnosis.Http
 {
   public class HttpPerformanceDelegatingHandler : DelegatingHandler
   {
 
-    private static HttpPerformanceCounter counter = new HttpPerformanceCounter();
+    private readonly HttpPerformanceCounter counter;
 
 
 
@@ -24,17 +24,9 @@ namespace Ivony.Diagnosis
     public HttpPerformanceDelegatingHandler( ILogger logger, HttpMessageHandler handler ) : base( handler )
     {
 
-      var timer = new System.Timers.Timer( 5000 );
-      timer.Elapsed += ( sender, args ) =>
-      {
-
-        var old = counter;
-        counter = new HttpPerformanceCounter();
-        logger.LogInformation( old.CreateReport().ToString() );
-      };
-
-      timer.Start();
-
+      counter = new HttpPerformanceCounter();
+      counter.Subscribe( report => logger.LogInformation( report.ToString() ) );
+      counter.Start();
     }
 
 
@@ -54,6 +46,20 @@ namespace Ivony.Diagnosis
 
     }
 
+    private class Observer : IObserver<IHttpPerformanceReport>
+    {
 
+      public void OnCompleted()
+      {
+      }
+
+      public void OnError( Exception error )
+      {
+      }
+
+      public void OnNext( IHttpPerformanceReport value )
+      {
+      }
+    }
   }
 }

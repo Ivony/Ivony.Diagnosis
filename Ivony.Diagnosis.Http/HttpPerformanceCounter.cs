@@ -3,38 +3,27 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
-namespace Ivony.Diagnosis
+namespace Ivony.Diagnosis.Http
 {
   /// <summary>
   /// 定义 HTTP 性能计数器
   /// </summary>
-  public class HttpPerformanceCounter
+  public class HttpPerformanceCounter : PerformanceCounterBase<(long elapsed, int statusCode), IHttpPerformanceReport>
   {
-    private ConcurrentBag<Entry> _counter = new ConcurrentBag<Entry>();
 
-
-
-    private struct Entry
-    {
-      public long elapsed;
-      public int statusCode;
-    }
-
-
-
-    private DateTime _startTime;
-
-    private DateTime _stopTime;
 
     /// <summary>
     /// 创建 HttpPerformanceCounter 实例
     /// </summary>
-    public HttpPerformanceCounter()
-    {
-      _startTime = DateTime.UtcNow;
-    }
+    public HttpPerformanceCounter() : this( TimeSpan.FromSeconds( 1 ) ) { }
+
+    /// <summary>
+    /// 创建 HttpPerformanceCounter 实例
+    /// </summary>
+    public HttpPerformanceCounter( TimeSpan interval ) : base( interval ) { }
 
 
     /// <summary>
@@ -44,47 +33,18 @@ namespace Ivony.Diagnosis
     /// <param name="statusCode">响应状态码</param>
     public void OnRequestCompleted( long elapsed, int statusCode )
     {
-      if ( _availables == false )
-        return;
-
-      _counter.Add( new Entry { elapsed = elapsed, statusCode = statusCode } );
-
-
+      Increase( (elapsed, statusCode) );
     }
 
-
-    private bool _availables = true;
-
-    /// <summary>
-    /// 停止记录
-    /// </summary>
-    public void Stop()
-    {
-      if ( _availables )
-      {
-        lock ( this )
-        {
-          if ( _availables )
-          {
-            _stopTime = DateTime.UtcNow;
-            _availables = false;
-          }
-        }
-      }
-    }
-
-
-
-    public class Report : IHttpPerformanceReport
+    private class Report : IHttpPerformanceReport
     {
 
-      public Report( HttpPerformanceCounter counter )
+      public Report( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
       {
 
-        StartTime = counter._startTime;
-        StopTime = counter._stopTime;
+        StartTime = begin;
+        StopTime = end;
 
-        var data = counter._counter.ToArray();
 
         TotalRequests = data.Length;
         if ( data.Length > 0 )
@@ -133,7 +93,8 @@ namespace Ivony.Diagnosis
 
       public override string ToString()
       {
-        var report = $"total: {TotalRequests}, rps: {RequestPerSecond:F0}, avg: {AverageElapse.TotalMilliseconds:F0}ms, max: {MaxElapse.TotalMilliseconds:F0}ms, min: {MinElapse.TotalMilliseconds:F2}ms, error rate: {ErrorRate:P2}\n";
+        var report = $"{StartTime:O} - {StopTime:O}\n";
+        report += $"total: {TotalRequests}, rps: {RequestPerSecond:F0}, avg: {AverageElapse.TotalMilliseconds:F0}ms, max: {MaxElapse.TotalMilliseconds:F0}ms, min: {MinElapse.TotalMilliseconds:F0}ms, error rate: {ErrorRate:P2}\n";
 
         report += string.Join( ", ", HttpStatusReport.Select( item => $"HTTP{item.Key}: {item.Value}" ) );
 
@@ -143,14 +104,12 @@ namespace Ivony.Diagnosis
     }
 
 
-    public Report CreateReport()
+    protected override IHttpPerformanceReport CreateReport( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
     {
 
-      Stop();
+      Thread.Sleep( 1500 );
 
-      return new Report( this );
-
-
+      return new Report( begin, end, data );
     }
   }
 }
