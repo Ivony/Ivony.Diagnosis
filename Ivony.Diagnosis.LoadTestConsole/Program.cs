@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
-using Ivony.Diagnosis.Http;
+using Ivony.Performance.Http;
 using Microsoft.Extensions.Logging;
 
 namespace Ivony.Diagnosis.LoadTestConsole

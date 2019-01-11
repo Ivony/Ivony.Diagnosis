@@ -3,26 +3,24 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
+using Ivony.Performance;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Ivony.Diagnosis.Http
+namespace Ivony.Performance.Http
 {
   public class HttpPerformanceMiddleware : IMiddleware
   {
-    private static HttpPerformanceCounter counter = new HttpPerformanceCounter();
-
-    private readonly ILogger logger;
 
 
-    public HttpPerformanceMiddleware( ILogger<HttpPerformanceMiddleware> logger )
+
+    public HttpPerformanceMiddleware( PerformanceService service )
     {
-      this.logger = logger;
-
-      counter.Subscribe( report => logger.LogInformation( report.ToString() ) );
-      counter.Start();
-
+      Counter = new HttpPerformanceCounter();
+      service.Register( Counter );
     }
+
+    public HttpPerformanceCounter Counter { get; }
 
     public async Task InvokeAsync( HttpContext context, RequestDelegate next )
     {
@@ -33,7 +31,7 @@ namespace Ivony.Diagnosis.Http
       watch.Stop();
 
 
-      counter.OnRequestCompleted( watch.ElapsedMilliseconds, context.Response.StatusCode );
+      Counter.OnRequestCompleted( watch.ElapsedMilliseconds, context.Response.StatusCode );
     }
   }
 }

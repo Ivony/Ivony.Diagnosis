@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 
-namespace Ivony.Diagnosis.Http
+namespace Ivony.Performance.Http
 {
   public class HttpPerformanceDelegatingHandler : DelegatingHandler
   {
@@ -25,8 +25,6 @@ namespace Ivony.Diagnosis.Http
     {
 
       counter = new HttpPerformanceCounter();
-      counter.Subscribe( report => logger.LogInformation( report.ToString() ) );
-      counter.Start();
     }
 
 

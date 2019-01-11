@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Ivony.Diagnosis.Http
+namespace Ivony.Performance.Http
 {
   /// <summary>
   /// HTTP 性能报告

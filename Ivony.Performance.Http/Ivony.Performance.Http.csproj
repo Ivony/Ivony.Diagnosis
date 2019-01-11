@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Ivony.Diagnosis\Ivony.Diagnosis.csproj" />
+    <ProjectReference Include="..\Ivony.Performance\Ivony.Performance.csproj" />
   </ItemGroup>
 
 </Project>

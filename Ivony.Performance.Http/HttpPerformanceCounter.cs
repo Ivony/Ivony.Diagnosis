@@ -4,26 +4,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Ivony.Diagnosis.Http
+namespace Ivony.Performance.Http
 {
   /// <summary>
   /// 定义 HTTP 性能计数器
   /// </summary>
   public class HttpPerformanceCounter : PerformanceCounterBase<(long elapsed, int statusCode), IHttpPerformanceReport>
   {
-
-
-    /// <summary>
-    /// 创建 HttpPerformanceCounter 实例
-    /// </summary>
-    public HttpPerformanceCounter() : this( TimeSpan.FromSeconds( 1 ) ) { }
-
-    /// <summary>
-    /// 创建 HttpPerformanceCounter 实例
-    /// </summary>
-    public HttpPerformanceCounter( TimeSpan interval ) : base( interval ) { }
 
 
     /// <summary>
@@ -104,12 +94,10 @@ namespace Ivony.Diagnosis.Http
     }
 
 
-    protected override IHttpPerformanceReport CreateReport( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
+    protected override Task<IHttpPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
     {
 
-      Thread.Sleep( 1500 );
-
-      return new Report( begin, end, data );
+      return Task.Run( () => (IHttpPerformanceReport) new Report( begin, end, data ) );
     }
   }
 }
