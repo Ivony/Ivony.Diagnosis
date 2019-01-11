@@ -12,12 +12,12 @@ namespace Ivony.Performance
     /// <summary>
     /// 性能报告开始时间
     /// </summary>
-    DateTime StartTime { get; }
+    DateTime BeginTime { get; }
 
     /// <summary>
     /// 性能报告结束时间
     /// </summary>
-    DateTime StopTime { get; }
+    DateTime EndTime { get; }
 
 
     /// <summary>
@@ -29,7 +29,7 @@ namespace Ivony.Performance
     /// <summary>
     /// 获取指标值
     /// </summary>
-    /// <param name="key"></param>
+    /// <param name="key">指标键</param>
     /// <returns></returns>
     double GetValue( string key );
 

@@ -26,15 +26,11 @@ namespace Ivony.Performance.Http
       Increase( (elapsed, statusCode) );
     }
 
-    private class Report : IHttpPerformanceReport
+    private class Report : PerformanceReportBase, IHttpPerformanceReport
     {
 
-      public Report( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
+      public Report( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data ) : base( begin, end )
       {
-
-        StartTime = begin;
-        StopTime = end;
-
 
         TotalRequests = data.Length;
         if ( data.Length > 0 )
@@ -49,7 +45,7 @@ namespace Ivony.Performance.Http
 
           ErrorRate = errors / TotalRequests;
           var success = TotalRequests - errors;
-          RequestPerSecond = success / (StopTime - StartTime).TotalSeconds;
+          RequestPerSecond = success / (EndTime - BeginTime).TotalSeconds;
         }
 
         else
@@ -66,12 +62,6 @@ namespace Ivony.Performance.Http
       public IDictionary<int, int> HttpStatusReport { get; }
 
 
-
-      public DateTime StartTime { get; }
-
-      public DateTime StopTime { get; }
-
-
       public TimeSpan AverageElapse { get; }
 
       public TimeSpan MaxElapse { get; }
@@ -83,7 +73,7 @@ namespace Ivony.Performance.Http
 
       public override string ToString()
       {
-        var report = $"{StartTime:O} - {StopTime:O}\n";
+        var report = $"{BeginTime:O} - {EndTime:O}\n";
         report += $"total: {TotalRequests}, rps: {RequestPerSecond:F0}, avg: {AverageElapse.TotalMilliseconds:F0}ms, max: {MaxElapse.TotalMilliseconds:F0}ms, min: {MinElapse.TotalMilliseconds:F0}ms, error rate: {ErrorRate:P2}\n";
 
         report += string.Join( ", ", HttpStatusReport.Select( item => $"HTTP{item.Key}: {item.Value}" ) );

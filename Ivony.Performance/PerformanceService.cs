@@ -21,7 +21,7 @@ namespace Ivony.Performance
   /// <summary>
   /// 统一调度性能计数器和创建性能报告的性能报告服务
   /// </summary>
-  public class PerformanceService : IHostedService
+  public class PerformanceService : IPerformanceService
   {
 
 
@@ -266,7 +266,7 @@ namespace Ivony.Performance
 
         public Task SendReportAsync( TReport report )
         {
-          return Collector.SendReportAsync( report );
+          return Collector.CollectReportAsync( report );
         }
       }
     }
