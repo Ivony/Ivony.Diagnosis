@@ -17,7 +17,7 @@ namespace Ivony.Performance
     /// <param name="counter">性能计数器</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public static IDisposable Register<TReport>( IPerformanceService service, IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
+    public static IDisposable Register<TReport>( this IPerformanceService service, IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
     {
       return service.Register( counter, service.ServiceProvider.GetServices<IPerformanceReportCollector<TReport>>().ToArray() );
     }

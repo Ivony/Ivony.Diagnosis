@@ -9,25 +9,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance.Http
 {
-  public class HttpPerformanceMiddleware : IMiddleware
+  public class HttpPerformanceMiddleware
   {
+    private readonly RequestDelegate nextHandler;
 
-
-
-    public HttpPerformanceMiddleware( PerformanceService service )
+    public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next )
     {
       Counter = new HttpPerformanceCounter();
       service.Register( Counter );
+      nextHandler = next;
     }
 
     public HttpPerformanceCounter Counter { get; }
 
-    public async Task InvokeAsync( HttpContext context, RequestDelegate next )
+    public async Task InvokeAsync( HttpContext context )
     {
 
       var watch = new Stopwatch();
       watch.Start();
-      await next( context );
+      await nextHandler( context );
       watch.Stop();
 
 

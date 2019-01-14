@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Ivony.Performance.Metrics;
 using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance.Http
@@ -55,19 +56,25 @@ namespace Ivony.Performance.Http
 
 
 
+      [Unit_pcs]
       public int TotalRequests { get; }
 
+      [Unit_rps]
       public double RequestPerSecond { get; }
 
       public IDictionary<int, int> HttpStatusReport { get; }
 
 
+      [Unit_ms]
       public TimeSpan AverageElapse { get; }
 
+      [Unit_ms]
       public TimeSpan MaxElapse { get; }
 
+      [Unit_ms]
       public TimeSpan MinElapse { get; }
 
+      [Unit_percent]
       public double ErrorRate { get; }
 
 

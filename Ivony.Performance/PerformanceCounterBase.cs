@@ -20,7 +20,6 @@ namespace Ivony.Performance
   {
 
     private ConcurrentBag<TEntry> counter;
-    private Timer timer;
     private DateTime timestamp;
 
 

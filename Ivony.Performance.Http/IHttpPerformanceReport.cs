@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Ivony.Performance.Metrics;
 
 namespace Ivony.Performance.Http
 {
@@ -9,6 +10,7 @@ namespace Ivony.Performance.Http
   public interface IHttpPerformanceReport : IPerformanceReport
   {
 
+    [Unit_pcs]
     /// <summary>
     /// 总请求数
     /// </summary>
@@ -21,21 +23,25 @@ namespace Ivony.Performance.Http
     IDictionary<int, int> HttpStatusReport { get; }
 
 
+    [Unit_ms]
     /// <summary>
     /// 平均处理时间
     /// </summary>
     TimeSpan AverageElapse { get; }
 
+    [Unit_ms]
     /// <summary>
     /// 最长处理时间
     /// </summary>
     TimeSpan MaxElapse { get; }
 
+    [Unit_ms]
     /// <summary>
     /// 最短处理时间
     /// </summary>
     TimeSpan MinElapse { get; }
 
+    [Unit_percent]
     /// <summary>
     /// 错误率
     /// </summary>

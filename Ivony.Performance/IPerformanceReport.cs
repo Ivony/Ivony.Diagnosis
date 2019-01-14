@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Ivony.Performance.Metrics;
 
 namespace Ivony.Performance
 {
@@ -20,18 +21,12 @@ namespace Ivony.Performance
     DateTime EndTime { get; }
 
 
-    /// <summary>
-    /// 可用的指标列表
-    /// </summary>
-    IEnumerable<string> Keys { get; }
-
 
     /// <summary>
-    /// 获取指标值
+    /// 获取所有指标值
     /// </summary>
-    /// <param name="key">指标键</param>
     /// <returns></returns>
-    double GetValue( string key );
+    IReadOnlyDictionary<string, PerformanceMetric> GetMetrics();
 
   }
 }

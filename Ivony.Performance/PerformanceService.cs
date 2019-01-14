@@ -47,9 +47,12 @@ namespace Ivony.Performance
     /// <returns></returns>
     public Task StopAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
-      timer.Stop();
-      timer.Dispose();
 
+      if ( timer != null )
+      {
+        timer.Stop();
+        timer.Dispose();
+      }
       return Task.CompletedTask;
     }
 
@@ -113,7 +116,7 @@ namespace Ivony.Performance
     /// <param name="counter">性能计数器</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, params IPerformanceReportCollector<TReport>[] collectors ) where TReport : IPerformanceReport
+    public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport>[] collectors ) where TReport : IPerformanceReport
     {
       var host = GetHost( counter );
       return host.Register( collectors );
