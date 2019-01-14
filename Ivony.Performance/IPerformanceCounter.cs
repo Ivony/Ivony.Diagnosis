@@ -12,6 +12,10 @@ namespace Ivony.Performance
   public interface IPerformanceCounter<TReport> where TReport : IPerformanceReport
   {
 
+    /// <summary>
+    /// 创建性能报告
+    /// </summary>
+    /// <returns></returns>
     Task<TReport> CreateReportAsync();
 
   }

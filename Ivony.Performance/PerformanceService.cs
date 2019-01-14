@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
+using System.Timers;
+
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
-using System.Collections.Concurrent;
-
-
+using Microsoft.Extensions.Logging;
 
 using Timer = System.Timers.Timer;
-using System.Timers;
-using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance
 {
@@ -28,17 +24,33 @@ namespace Ivony.Performance
 
     private Timer timer;
 
-    public async Task StartAsync( CancellationToken cancellationToken )
+
+    /// <summary>
+    /// 启动性能计数器服务
+    /// </summary>
+    /// <param name="cancellationToken">任务取消标识</param>
+    /// <returns></returns>
+    public Task StartAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
       timer = new Timer( Interval.TotalMilliseconds );
       timer.Elapsed += SendReport;
       timer.Start();
+
+      return Task.CompletedTask;
     }
 
-    public async Task StopAsync( CancellationToken cancellationToken )
+
+    /// <summary>
+    /// 停止性能计数器服务
+    /// </summary>
+    /// <param name="cancellationToken">任务取消标识</param>
+    /// <returns></returns>
+    public Task StopAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
       timer.Stop();
       timer.Dispose();
+
+      return Task.CompletedTask;
     }
 
 
@@ -84,24 +96,13 @@ namespace Ivony.Performance
     public ILogger<PerformanceService> Logger { get; }
 
 
-    private ConcurrentDictionary<object, IPerformanceCounterHost> counters = new ConcurrentDictionary<object, IPerformanceCounterHost>();
+    private IDictionary<object, IPerformanceCounterHost> hosts = new Dictionary<object, IPerformanceCounterHost>();
 
 
 
 
 
 
-    /// <summary>
-    /// 从系统服务中查找性能报告搜集器并注册
-    /// </summary>
-    /// <typeparam name="TReport">性能报告类型</typeparam>
-    /// <param name="counter">性能计数器</param>
-    /// <param name="collector">性能报告搜集器</param>
-    /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
-    {
-      return Register( counter, ServiceProvider.GetServices<IPerformanceReportCollector<TReport>>().ToArray() );
-    }
 
 
 
@@ -114,7 +115,7 @@ namespace Ivony.Performance
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
     public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, params IPerformanceReportCollector<TReport>[] collectors ) where TReport : IPerformanceReport
     {
-      var host = (Host<TReport>) counters.GetOrAdd( counter, new Host<TReport>( counter ) );
+      var host = GetHost( counter );
       return host.Register( collectors );
     }
 
@@ -128,16 +129,35 @@ namespace Ivony.Performance
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
     public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport> collector ) where TReport : IPerformanceReport
     {
-      var host = (Host<TReport>) counters.GetOrAdd( counter, new Host<TReport>( counter ) );
+      var host = GetHost( counter );
       return host.Register( collector );
     }
 
 
+    private Host<TReport> GetHost<TReport>( IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
+    {
+      lock ( sync )
+      {
+        if ( disposed )
+          throw new ObjectDisposedException( "PerformanceSerivce" );
+
+        if ( hosts.TryGetValue( counter, out var host ) )
+          return (Host<TReport>) host;
+
+        return (Host<TReport>) (hosts[counter] = new Host<TReport>( counter ));
+      }
+    }
 
 
+
+    /// <summary>
+    /// 由 Timer 对象定期调用，发送性能报告。
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="e"></param>
     protected virtual void SendReport( object sender, ElapsedEventArgs e )
     {
-      var hosts = counters.Values.ToArray();
+      var hosts = this.hosts.Values.ToArray();
       Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport() ) ) )
         .ContinueWith( task =>
         {
@@ -146,12 +166,36 @@ namespace Ivony.Performance
         } );
     }
 
+    /// <summary>
+    /// 当发送性能报告出现异常时调用此方法
+    /// </summary>
+    /// <param name="exception">异常信息</param>
     protected virtual void OnException( AggregateException exception )
     {
       Logger.LogError( $"send performance report with error:\n{exception}" );
     }
 
-    private interface IPerformanceCounterHost
+
+    private readonly object sync = new object();
+    private bool disposed = false;
+
+    void IDisposable.Dispose()
+    {
+      lock ( sync )
+      {
+        disposed = true;
+
+        StopAsync().Wait();
+
+        foreach ( var item in hosts.Values.ToArray() )
+        {
+          item.Dispose();
+        }
+      }
+    }
+
+
+    private interface IPerformanceCounterHost : IDisposable
     {
       Task SendReport();
 
@@ -169,7 +213,7 @@ namespace Ivony.Performance
 
 
 
-      private object sync = new object();
+      private readonly object sync = new object();
 
 
 
@@ -192,6 +236,9 @@ namespace Ivony.Performance
       {
         lock ( sync )
         {
+          if ( disposed )
+            throw new ObjectDisposedException( "PerformanceCounterHost" );
+
           var registration = new Registration( this, collector );
           registrations.Add( registration );
           return registration;
@@ -208,6 +255,9 @@ namespace Ivony.Performance
       {
         lock ( sync )
         {
+          if ( disposed )
+            throw new ObjectDisposedException( "PerformanceCounterHost" );
+
           var items = collectors.Select( item =>
           {
             var reg = new Registration( this, item );
@@ -225,7 +275,19 @@ namespace Ivony.Performance
       }
 
 
+      private bool disposed = false;
       private HashSet<Registration> registrations = new HashSet<Registration>();
+
+
+      public void Dispose()
+      {
+        lock ( sync )
+        {
+          disposed = true;
+          foreach ( var item in registrations )
+            item.Dispose();
+        }
+      }
 
 
       private class RegistrationSet : IDisposable
