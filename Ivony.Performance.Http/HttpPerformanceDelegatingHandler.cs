@@ -10,24 +10,34 @@ using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance.Http
 {
+  /// <summary>
+  /// 用于监控 HTTP 性能的 HTTP 消息处理器
+  /// </summary>
   public class HttpPerformanceDelegatingHandler : DelegatingHandler
   {
 
-    private readonly HttpPerformanceCounter counter;
 
-
-
-    public HttpPerformanceDelegatingHandler( ILogger logger ) : this( logger, null )
+    /// <summary>
+    /// 创建 HttpPerformanceDelegatingHandler 对象
+    /// </summary>
+    /// <param name="handler"></param>
+    public HttpPerformanceDelegatingHandler( HttpMessageHandler handler ) : base( handler )
     {
+      Counter = new HttpPerformanceCounter();
     }
 
-    public HttpPerformanceDelegatingHandler( ILogger logger, HttpMessageHandler handler ) : base( handler )
-    {
+    /// <summary>
+    /// 性能计数器
+    /// </summary>
+    public HttpPerformanceCounter Counter { get; }
 
-      counter = new HttpPerformanceCounter();
-    }
 
-
+    /// <summary>
+    /// 重写此方法发送 HTTP 请求
+    /// </summary>
+    /// <param name="request">请求消息</param>
+    /// <param name="cancellationToken">取消标识</param>
+    /// <returns>用于等待的 Task 对象</returns>
     protected override async Task<HttpResponseMessage> SendAsync( HttpRequestMessage request, CancellationToken cancellationToken )
     {
 
@@ -38,26 +48,10 @@ namespace Ivony.Performance.Http
       watch.Stop();
 
 
-      counter.OnRequestCompleted( watch.ElapsedMilliseconds, (int) response.StatusCode );
+      Counter.OnRequestCompleted( watch.ElapsedMilliseconds, (int) response.StatusCode );
 
       return response;
 
-    }
-
-    private class Observer : IObserver<IHttpPerformanceReport>
-    {
-
-      public void OnCompleted()
-      {
-      }
-
-      public void OnError( Exception error )
-      {
-      }
-
-      public void OnNext( IHttpPerformanceReport value )
-      {
-      }
     }
   }
 }

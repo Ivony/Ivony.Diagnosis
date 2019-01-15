@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Ivony.Performance;
 using Ivony.Performance.Http;
 using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,9 @@ namespace Ivony.Diagnosis.LoadTestConsole
   {
     public static async Task Main( string[] args )
     {
+
+      var service = new PerformanceService( null );
+
       if ( args.Length < 1 )
       {
         Console.WriteLine( "url is required" );
@@ -29,7 +33,10 @@ namespace Ivony.Diagnosis.LoadTestConsole
       if ( args.Length > 2 )
         degree = int.Parse( args[2] );
 
-      var client = new HttpClient( new HttpPerformanceDelegatingHandler( new ConsoleLogger(), new HttpClientHandler() ) );
+      var handler = new HttpPerformanceDelegatingHandler( new HttpClientHandler() );
+
+
+      var client = new HttpClient( handler );
 
 
       var block = new ActionBlock<int>( async i => await client.GetAsync( string.Format( url, i ) ), new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = degree } );
