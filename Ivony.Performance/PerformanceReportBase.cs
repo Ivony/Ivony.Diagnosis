@@ -47,7 +47,7 @@ namespace Ivony.Performance
 
         var list =
           from property in GetType().GetProperties( BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetProperty )
-          let attribute = property.GetCustomAttributes().Select( attribute => attribute as MetricAttribute ).FirstOrDefault( attribute => attribute != null )
+          let attribute = property.GetCustomAttributes().Select( attribute => attribute as MetricAttributeBase ).FirstOrDefault( attribute => attribute != null )
           where attribute != null
           select (property.Name, attribute.GetMetric( this, property ));
 

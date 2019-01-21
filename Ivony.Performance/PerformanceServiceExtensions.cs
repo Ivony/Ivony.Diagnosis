@@ -22,5 +22,10 @@ namespace Ivony.Performance
       return service.Register( counter, service.ServiceProvider.GetServices<IPerformanceReportCollector<TReport>>().ToArray() );
     }
 
+
+
+
+
+
   }
 }

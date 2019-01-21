@@ -10,7 +10,7 @@ namespace Ivony.Performance.Metrics
   /// <summary>
   /// 定义指明度量值单位和类型的 Attribute 的基类型
   /// </summary>
-  public abstract class MetricAttribute : Attribute
+  public abstract class MetricAttributeBase : Attribute
   {
     public abstract PerformanceMetric GetMetric( object report, PropertyInfo property );
 
@@ -32,7 +32,46 @@ namespace Ivony.Performance.Metrics
 
 
   [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
-  public class Unit_msAttribute : MetricAttribute
+  public class MetricAttribute : MetricAttributeBase
+  {
+
+    public MetricAttribute( Type providerType )
+    {
+      Instance = (IPerformanceMetricProvider) Activator.CreateInstance( providerType );
+
+    }
+
+    public IPerformanceMetricProvider Instance { get; }
+
+    public override PerformanceMetric GetMetric( object report, PropertyInfo property )
+    {
+      return Instance.CreateMetric( report, property );
+    }
+  }
+
+
+
+  [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
+  public class UnitAttribute : MetricAttributeBase
+  {
+
+    public UnitAttribute( PerformanceMetricUnitType type, string format )
+    {
+      Unit = new PerformanceMetricUnit( type, format );
+    }
+
+    public PerformanceMetricUnit Unit { get; }
+
+    public override PerformanceMetric GetMetric( object report, PropertyInfo property )
+    {
+      return new PerformanceMetric( GetValue( report, property ), Unit );
+    }
+  }
+
+
+
+  [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
+  public class Unit_msAttribute : MetricAttributeBase
   {
     public override PerformanceMetric GetMetric( object report, PropertyInfo property )
     {
@@ -51,7 +90,7 @@ namespace Ivony.Performance.Metrics
 
 
   [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
-  public class Unit_rpsAttribute : MetricAttribute
+  public class Unit_rpsAttribute : MetricAttributeBase
   {
     public override PerformanceMetric GetMetric( object report, PropertyInfo property )
     {
@@ -62,7 +101,7 @@ namespace Ivony.Performance.Metrics
   }
 
   [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
-  public class Unit_percentAttribute : MetricAttribute
+  public class Unit_percentAttribute : MetricAttributeBase
   {
     public override PerformanceMetric GetMetric( object report, PropertyInfo property )
     {
@@ -73,7 +112,7 @@ namespace Ivony.Performance.Metrics
   }
 
   [AttributeUsage( AttributeTargets.Property, AllowMultiple = false, Inherited = true )]
-  public class Unit_pcsAttribute : MetricAttribute
+  public class Unit_pcsAttribute : MetricAttributeBase
   {
     public override PerformanceMetric GetMetric( object report, PropertyInfo property )
     {
