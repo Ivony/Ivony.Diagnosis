@@ -287,7 +287,7 @@ namespace Ivony.Performance
         lock ( sync )
         {
           disposed = true;
-          foreach ( var item in registrations )
+          foreach ( var item in registrations.ToArray() )
             item.Dispose();
         }
       }
