@@ -7,10 +7,10 @@ namespace Ivony.Performance
   /// <summary>
   /// 定义 IPerformanceReportCollector 工厂类，负责创建 IPerformanceReportCollector 对象
   /// </summary>
-  public interface IPerformanceReportCollectorFactory
+  public interface IPerformanceCollectorFactory
   {
 
-    IPerformanceReportCollector<TReport> GetReportCollector<TReport>( IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport;
+    IPerformanceCollector<TReport> GetReportCollector<TReport>( IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport;
 
   }
 }

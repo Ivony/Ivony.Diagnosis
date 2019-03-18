@@ -16,7 +16,7 @@ namespace Ivony.Performance
   /// <summary>
   /// 定义性能计数器基类型
   /// </summary>
-  public abstract class PerformanceCounterBase<TEntry, TReport> : IPerformanceCounter<TReport> where TReport : IPerformanceReport
+  public abstract class PerformanceCounterBase<TEntry, TReport> : IPerformanceSource<TReport> where TReport : IPerformanceReport
   {
 
     private ConcurrentBag<TEntry> counter;
@@ -33,18 +33,22 @@ namespace Ivony.Performance
       counter = new ConcurrentBag<TEntry>();
     }
 
-    public virtual Task<TReport> CreateReportAsync()
+    public virtual async Task<TReport> CreateReportAsync()
     {
+
       var _counter = counter;
       counter = new ConcurrentBag<TEntry>();
       Thread.MemoryBarrier();
-
 
       var begin = timestamp;
       var end = timestamp = DateTime.UtcNow;
       Thread.MemoryBarrier();
 
-      return CreateReportAsync( begin, end, _counter.ToArray() );
+
+
+      await Task.Yield();
+
+      return await CreateReportAsync( begin, end, _counter.ToArray() );
 
     }
 

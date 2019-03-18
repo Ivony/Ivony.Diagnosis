@@ -9,7 +9,7 @@ namespace Ivony.Performance
 
     IServiceProvider ServiceProvider { get; }
 
-    IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport> collector ) where TReport : IPerformanceReport;
-    IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport>[] collectors ) where TReport : IPerformanceReport;
+    IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport> collector ) where TReport : IPerformanceReport;
+    IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport>[] collectors ) where TReport : IPerformanceReport;
   }
 }

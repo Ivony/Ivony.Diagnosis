@@ -17,7 +17,7 @@ namespace Ivony.Performance
     /// <param name="counter">性能计数器</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public static IDisposable Register<TReport>( this IPerformanceService service, IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
+    public static IDisposable Register<TReport>( this IPerformanceService service, IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
     {
       return service.Register( counter, service.ServiceProvider.GetPerformanceReportCollectors<TReport>( counter ) );
     }
@@ -31,11 +31,11 @@ namespace Ivony.Performance
     /// <param name="serviceProvider">系统服务提供程序</param>
     /// <param name="counter">性能计数器</param>
     /// <returns>所有注册的性能报告搜集器</returns>
-    public static IPerformanceReportCollector<TReport>[] GetPerformanceReportCollectors<TReport>( this IServiceProvider serviceProvider, IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
+    public static IPerformanceCollector<TReport>[] GetPerformanceReportCollectors<TReport>( this IServiceProvider serviceProvider, IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
     {
 
-      var result = new HashSet<IPerformanceReportCollector<TReport>>();
-      var factories = serviceProvider.GetServices<IPerformanceReportCollectorFactory>();
+      var result = new HashSet<IPerformanceCollector<TReport>>();
+      var factories = serviceProvider.GetServices<IPerformanceCollectorFactory>();
 
       foreach ( var item in factories )
       {
@@ -45,7 +45,7 @@ namespace Ivony.Performance
       }
 
 
-      result.UnionWith( serviceProvider.GetServices<IPerformanceReportCollector<TReport>>().ToArray() );
+      result.UnionWith( serviceProvider.GetServices<IPerformanceCollector<TReport>>().ToArray() );
 
       return result.ToArray();
 

@@ -32,6 +32,18 @@ namespace Ivony.Performance
     /// <returns></returns>
     public Task StartAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
+
+      if ( ServiceProvider.GetService<AutoRegisterAllPerformanceCollector>() != null )
+      {
+        foreach ( var service in ServiceProvider.GetServices( typeof( IPerformanceSource<> ) ) )
+        {
+          var performanceType = service.GetType().GetGenericArguments()[0];
+          var method = typeof( PerformanceServiceExtensions ).GetMethod( "Register" ).MakeGenericMethod( performanceType );
+
+          method.Invoke( null, new[] { this, service } );
+        }
+      }
+
       timer = new Timer( Interval.TotalMilliseconds );
       timer.Elapsed += SendReport;
       timer.Start();
@@ -116,7 +128,7 @@ namespace Ivony.Performance
     /// <param name="counter">性能计数器</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport>[] collectors ) where TReport : IPerformanceReport
+    public IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport>[] collectors ) where TReport : IPerformanceReport
     {
       var host = GetHost( counter );
       return host.Register( collectors );
@@ -130,14 +142,14 @@ namespace Ivony.Performance
     /// <param name="counter">性能计数器</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceCounter<TReport> counter, IPerformanceReportCollector<TReport> collector ) where TReport : IPerformanceReport
+    public IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport> collector ) where TReport : IPerformanceReport
     {
       var host = GetHost( counter );
       return host.Register( collector );
     }
 
 
-    private Host<TReport> GetHost<TReport>( IPerformanceCounter<TReport> counter ) where TReport : IPerformanceReport
+    private Host<TReport> GetHost<TReport>( IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
     {
       lock ( sync )
       {
@@ -147,7 +159,7 @@ namespace Ivony.Performance
         if ( hosts.TryGetValue( counter, out var host ) )
           return (Host<TReport>) host;
 
-        return (Host<TReport>) (hosts[counter] = new Host<TReport>( counter ));
+        return (Host<TReport>) (hosts[counter] = new Host<TReport>( this, counter ));
       }
     }
 
@@ -156,12 +168,14 @@ namespace Ivony.Performance
     /// <summary>
     /// 由 Timer 对象定期调用，发送性能报告。
     /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    /// <param name="sender">事件源</param>
+    /// <param name="e">时间参数</param>
     protected virtual void SendReport( object sender, ElapsedEventArgs e )
     {
+
+      var now = DateTime.UtcNow;
       var hosts = this.hosts.Values.ToArray();
-      Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport() ) ) )
+      Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport( now ) ) ) )
         .ContinueWith( task =>
         {
           if ( task.IsFaulted )
@@ -200,19 +214,21 @@ namespace Ivony.Performance
 
     private interface IPerformanceCounterHost : IDisposable
     {
-      Task SendReport();
+      Task SendReport( DateTime timestamp );
 
     }
 
     private class Host<TReport> : IPerformanceCounterHost where TReport : IPerformanceReport
     {
 
-      public Host( IPerformanceCounter<TReport> counter )
+      public Host( PerformanceService service, IPerformanceSource<TReport> counter )
       {
+        Service = service;
         Counter = counter;
       }
 
-      public IPerformanceCounter<TReport> Counter { get; }
+      public PerformanceService Service { get; }
+      public IPerformanceSource<TReport> Counter { get; }
 
 
 
@@ -224,10 +240,10 @@ namespace Ivony.Performance
       /// 向所有性能报告搜集器推送性能报告
       /// </summary>
       /// <returns>用于等待推送完成的 Task 对象</returns>
-      public virtual async Task SendReport()
+      public virtual async Task SendReport(  DateTime timestamp )
       {
         var report = await Counter.CreateReportAsync();
-        await Task.WhenAll( registrations.Select( item => item.SendReportAsync( report ) ) );
+        await Task.WhenAll( registrations.Select( item => item.SendReportAsync( Service, timestamp, report ) ) );
       }
 
       /// <summary>
@@ -235,7 +251,7 @@ namespace Ivony.Performance
       /// </summary>
       /// <param name="collector">性能报告搜集器</param>
       /// <returns>返回一个 IDisposable 对象，调用其 Dispose 方法来取消注册</returns>
-      public IDisposable Register( IPerformanceReportCollector<TReport> collector )
+      public IDisposable Register( IPerformanceCollector<TReport> collector )
       {
         lock ( sync )
         {
@@ -250,11 +266,11 @@ namespace Ivony.Performance
 
 
       /// <summary>
-      /// 注册一个性能报告搜集器
+      /// 注册多个性能报告搜集器
       /// </summary>
-      /// <param name="collector">性能报告搜集器</param>
+      /// <param name="collectors">性能报告搜集器列表</param>
       /// <returns>返回一个 IDisposable 对象，调用其 Dispose 方法来取消注册</returns>
-      public IDisposable Register( params IPerformanceReportCollector<TReport>[] collectors )
+      public IDisposable Register( params IPerformanceCollector<TReport>[] collectors )
       {
         lock ( sync )
         {
@@ -313,7 +329,7 @@ namespace Ivony.Performance
 
       private class Registration : IDisposable
       {
-        public Registration( Host<TReport> host, IPerformanceReportCollector<TReport> collector )
+        public Registration( Host<TReport> host, IPerformanceCollector<TReport> collector )
         {
           Host = host;
           Collector = collector;
@@ -321,7 +337,7 @@ namespace Ivony.Performance
 
         public Host<TReport> Host { get; }
 
-        public IPerformanceReportCollector<TReport> Collector { get; }
+        public IPerformanceCollector<TReport> Collector { get; }
 
 
         public void Dispose()
@@ -329,9 +345,9 @@ namespace Ivony.Performance
           Host.registrations.Remove( this );
         }
 
-        public Task SendReportAsync( TReport report )
+        public Task SendReportAsync( IPerformanceService service, DateTime timestamp, TReport report )
         {
-          return Collector.CollectReportAsync( report );
+          return Collector.CollectReportAsync( service, timestamp, report );
         }
       }
     }
