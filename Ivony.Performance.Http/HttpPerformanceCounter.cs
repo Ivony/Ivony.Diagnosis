@@ -91,6 +91,14 @@ namespace Ivony.Performance.Http
     }
 
 
+
+    /// <summary>
+    /// 创建性能报告
+    /// </summary>
+    /// <param name="begin">开始时间</param>
+    /// <param name="end">结束时间</param>
+    /// <param name="data">搜集到的数据</param>
+    /// <returns>性能报告</returns>
     protected override Task<IHttpPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
     {
 

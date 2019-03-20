@@ -111,55 +111,36 @@ namespace Ivony.Performance
     public ILogger<PerformanceService> Logger { get; }
 
 
-    private IDictionary<object, IPerformanceCounterHost> hosts = new Dictionary<object, IPerformanceCounterHost>();
+    private IDictionary<object, IPerformanceSourceHost> hosts = new Dictionary<object, IPerformanceSourceHost>();
 
 
-
-
-
-
-
-
-
-    /// <summary>
-    /// 注册多个性能报告搜集器
-    /// </summary>
-    /// <typeparam name="TReport">性能报告类型</typeparam>
-    /// <param name="counter">性能计数器</param>
-    /// <param name="collector">性能报告搜集器</param>
-    /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport>[] collectors ) where TReport : IPerformanceReport
-    {
-      var host = GetHost( counter );
-      return host.Register( collectors );
-    }
 
 
     /// <summary>
     /// 注册一个性能报告搜集器
     /// </summary>
     /// <typeparam name="TReport">性能报告类型</typeparam>
-    /// <param name="counter">性能计数器</param>
+    /// <param name="source">性能报告源</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceSource<TReport> counter, IPerformanceCollector<TReport> collector ) where TReport : IPerformanceReport
+    public IDisposable Register<TReport>( IPerformanceSource<TReport> source, IPerformanceCollector<TReport> collector ) where TReport : IPerformanceReport
     {
-      var host = GetHost( counter );
+      var host = GetHost( source );
       return host.Register( collector );
     }
 
 
-    private Host<TReport> GetHost<TReport>( IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
+    private Host<TReport> GetHost<TReport>( IPerformanceSource<TReport> source ) where TReport : IPerformanceReport
     {
       lock ( sync )
       {
         if ( disposed )
           throw new ObjectDisposedException( "PerformanceSerivce" );
 
-        if ( hosts.TryGetValue( counter, out var host ) )
+        if ( hosts.TryGetValue( source, out var host ) )
           return (Host<TReport>) host;
 
-        return (Host<TReport>) (hosts[counter] = new Host<TReport>( this, counter ));
+        return (Host<TReport>) (hosts[source] = new Host<TReport>( this, source ));
       }
     }
 
@@ -212,26 +193,25 @@ namespace Ivony.Performance
     }
 
 
-    private interface IPerformanceCounterHost : IDisposable
+    private interface IPerformanceSourceHost : IDisposable
     {
       Task SendReport( DateTime timestamp );
 
     }
 
-    private class Host<TReport> : IPerformanceCounterHost where TReport : IPerformanceReport
+    private class Host<TReport> : IPerformanceSourceHost where TReport : IPerformanceReport
     {
 
-      public Host( PerformanceService service, IPerformanceSource<TReport> counter )
+      public Host( PerformanceService service, IPerformanceSource<TReport> source )
       {
         Service = service;
-        Counter = counter;
+        Source = source;
       }
 
       public PerformanceService Service { get; }
-      public IPerformanceSource<TReport> Counter { get; }
+      public IPerformanceSource<TReport> Source { get; }
 
-
-
+      private const string ObjectName = "PerformanceSourceHost";
       private readonly object sync = new object();
 
 
@@ -242,7 +222,7 @@ namespace Ivony.Performance
       /// <returns>用于等待推送完成的 Task 对象</returns>
       public virtual async Task SendReport(  DateTime timestamp )
       {
-        var report = await Counter.CreateReportAsync();
+        var report = await Source.CreateReportAsync();
         await Task.WhenAll( registrations.Select( item => item.SendReportAsync( Service, timestamp, report ) ) );
       }
 
@@ -256,7 +236,7 @@ namespace Ivony.Performance
         lock ( sync )
         {
           if ( disposed )
-            throw new ObjectDisposedException( "PerformanceCounterHost" );
+            throw new ObjectDisposedException( ObjectName );
 
           var registration = new Registration( this, collector );
           registrations.Add( registration );
@@ -275,7 +255,7 @@ namespace Ivony.Performance
         lock ( sync )
         {
           if ( disposed )
-            throw new ObjectDisposedException( "PerformanceCounterHost" );
+            throw new ObjectDisposedException( ObjectName );
 
           var items = collectors.Select( item =>
           {

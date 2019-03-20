@@ -26,13 +26,17 @@ namespace Ivony.Performance
     /// <summary>
     /// 初始化 PerformanceCounterBase 实例
     /// </summary>
-    /// <param name="interval">发送报告的间隔时间</param>
-    /// <param name="reportCollector">收集性能报告的收集器</param>
     protected PerformanceCounterBase()
     {
       counter = new ConcurrentBag<TEntry>();
     }
 
+
+
+    /// <summary>
+    /// 创建性能报告
+    /// </summary>
+    /// <returns></returns>
     public virtual async Task<TReport> CreateReportAsync()
     {
 
@@ -52,9 +56,21 @@ namespace Ivony.Performance
 
     }
 
+    /// <summary>
+    /// 创建性能报告
+    /// </summary>
+    /// <param name="begin">开始时间</param>
+    /// <param name="end">结束时间</param>
+    /// <param name="data">搜集到的数据</param>
+    /// <returns>性能报告</returns>
     protected abstract Task<TReport> CreateReportAsync( DateTime begin, DateTime end, TEntry[] data );
 
 
+
+    /// <summary>
+    /// 进行性能计数
+    /// </summary>
+    /// <param name="entry"></param>
     protected void Increase( TEntry entry )
     {
       counter.Add( entry );

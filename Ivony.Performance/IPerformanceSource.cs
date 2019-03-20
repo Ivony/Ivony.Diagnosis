@@ -9,7 +9,7 @@ namespace Ivony.Performance
   /// 性能计数器抽象
   /// </summary>
   /// <typeparam name="TReport">性能报告格式</typeparam>
-  public interface IPerformanceSource<TReport> where TReport : IPerformanceReport
+  public interface IPerformanceSource<TReport>  where TReport : IPerformanceReport
   {
 
     /// <summary>

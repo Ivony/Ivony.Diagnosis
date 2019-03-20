@@ -1,4 +1,6 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Linq;
+using System.Net.Http;
 using Ivony.Performance;
 using Ivony.Performance.Http;
 using Microsoft.AspNetCore.Builder;
@@ -27,11 +29,15 @@ namespace Microsoft.Extensions.DependencyInjection
     /// 为当前 ASP.NET Core 管线启用性能计数器
     /// </summary>
     /// <param name="builder">ASP.NET 管线构建器</param>
+    /// <param name="counter">HTTP 性能计数器，若不提供则创建一个默认的</param>
     /// <returns>ASP.NET 管线构建器</returns>
-    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder )
+    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, HttpPerformanceCounter counter = null )
     {
 
-      builder.UseMiddleware<HttpPerformanceMiddleware>();
+      if ( builder.ApplicationServices.GetServices<IHostedService>().OfType<IPerformanceService>().Any() == false )
+        throw new InvalidOperationException( "must register PerformanceService for IHostedService first." );
+
+      builder.UseMiddleware<HttpPerformanceMiddleware>( counter ?? new HttpPerformanceCounter() );
       return builder;
 
     }

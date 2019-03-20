@@ -9,19 +9,33 @@ using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance.Http
 {
-  public class HttpPerformanceMiddleware
+  public class HttpPerformanceMiddleware : IDisposable
   {
     private readonly RequestDelegate nextHandler;
 
-    public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next )
+    public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next, HttpPerformanceCounter counter )
     {
-      Counter = new HttpPerformanceCounter();
-      service.Register( Counter );
+      _counter = counter;
+      _registry = service.Register( _counter );
       nextHandler = next;
     }
 
-    public HttpPerformanceCounter Counter { get; }
+    private readonly HttpPerformanceCounter _counter;
 
+    private readonly IDisposable _registry;
+
+    void IDisposable.Dispose()
+    {
+      _registry.Dispose();
+    }
+
+
+
+    /// <summary>
+    /// 重写 Invoke 方法，进行性能计数
+    /// </summary>
+    /// <param name="context">HTTP 上下文信息</param>
+    /// <returns></returns>
     public async Task InvokeAsync( HttpContext context )
     {
 
@@ -31,7 +45,7 @@ namespace Ivony.Performance.Http
       watch.Stop();
 
 
-      Counter.OnRequestCompleted( watch.ElapsedMilliseconds, context.Response.StatusCode );
+      _counter.OnRequestCompleted( watch.ElapsedMilliseconds, context.Response.StatusCode );
     }
   }
 }

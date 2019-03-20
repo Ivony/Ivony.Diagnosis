@@ -5,12 +5,18 @@ using System.Text;
 namespace Ivony.Performance
 {
   /// <summary>
-  /// 定义 IPerformanceReportCollector 工厂类，负责创建 IPerformanceReportCollector 对象
+  /// 定义 IPerformanceCollector 工厂类，负责创建 IPerformanceCollector 对象
   /// </summary>
   public interface IPerformanceCollectorFactory
   {
 
-    IPerformanceCollector<TReport> GetReportCollector<TReport>( IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport;
+    /// <summary>
+    /// 对指定的性能报告源创建搜集器 
+    /// </summary>
+    /// <typeparam name="TReport">性能报告类型</typeparam>
+    /// <param name="source">性能报告源</param>
+    /// <returns>可以搜集这些性能报告的搜集器</returns>
+    IPerformanceCollector<TReport> GetReportCollector<TReport>( IPerformanceSource<TReport> source ) where TReport : IPerformanceReport;
 
   }
 }

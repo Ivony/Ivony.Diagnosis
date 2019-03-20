@@ -32,7 +32,7 @@ namespace Ivony.Performance.Test.AspNet
       public void Configure( IApplicationBuilder app )
       {
 
-        app.UseMiddleware<HttpPerformanceMiddleware>();
+        app.UsePerformanceCounter();
 
         app.Run( async context =>
         {
@@ -45,7 +45,7 @@ namespace Ivony.Performance.Test.AspNet
       public IServiceProvider ConfigureServices( IServiceCollection services )
       {
         services.AddSingleton( typeof( IPerformanceCollector<> ), typeof( PerformanceLogsCollector<> ) );
-        services.AddPerformanceMonitor( true );
+        services.AddPerformanceMonitor();
         return services.BuildServiceProvider();
       }
     }

@@ -6,6 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ivony.Performance
 {
+
+
+  /// <summary>
+  /// 提供性能服务一些扩展方法
+  /// </summary>
   public static class PerformanceServiceExtensions
   {
 
@@ -14,12 +19,13 @@ namespace Ivony.Performance
     /// 从系统服务中查找性能报告搜集器并注册
     /// </summary>
     /// <typeparam name="TReport">性能报告类型</typeparam>
-    /// <param name="counter">性能计数器</param>
-    /// <param name="collector">性能报告搜集器</param>
-    /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public static IDisposable Register<TReport>( this IPerformanceService service, IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
+    /// <param name="service">性能监控服务</param>
+    /// <param name="source">性能报告源</param>
+    /// <returns>返回一些 IDisposable 对象，用于取消注册性能报告搜集</returns>
+    public static IDisposable Register<TReport>( this IPerformanceService service, IPerformanceSource<TReport> source ) where TReport : IPerformanceReport
     {
-      return service.Register( counter, service.ServiceProvider.GetPerformanceReportCollectors<TReport>( counter ) );
+      var collectors = service.ServiceProvider.GetPerformanceReportCollectors<TReport>( source );
+      return new DisposableHost( collectors.Select( item => service.Register( source, item ) ).ToArray() );
     }
 
 
@@ -29,9 +35,9 @@ namespace Ivony.Performance
     /// </summary>
     /// <typeparam name="TReport">性能报告类型</typeparam>
     /// <param name="serviceProvider">系统服务提供程序</param>
-    /// <param name="counter">性能计数器</param>
+    /// <param name="source">性能报告源</param>
     /// <returns>所有注册的性能报告搜集器</returns>
-    public static IPerformanceCollector<TReport>[] GetPerformanceReportCollectors<TReport>( this IServiceProvider serviceProvider, IPerformanceSource<TReport> counter ) where TReport : IPerformanceReport
+    public static IPerformanceCollector<TReport>[] GetPerformanceReportCollectors<TReport>( this IServiceProvider serviceProvider, IPerformanceSource<TReport> source ) where TReport : IPerformanceReport
     {
 
       var result = new HashSet<IPerformanceCollector<TReport>>();
@@ -39,7 +45,7 @@ namespace Ivony.Performance
 
       foreach ( var item in factories )
       {
-        var collector = item.GetReportCollector<TReport>( counter );
+        var collector = item.GetReportCollector<TReport>( source );
         if ( collector != null )
           result.Add( collector );
       }
@@ -51,8 +57,35 @@ namespace Ivony.Performance
 
     }
 
+    private class DisposableHost : IDisposable
+    {
+      private IDisposable[] _disposableObjects;
 
+      public DisposableHost( IDisposable[] disposableObjects )
+      {
+        _disposableObjects = disposableObjects;
+      }
 
+      public void Dispose()
+      {
+        List<Exception> exceptions = new List<Exception>();
 
+        foreach ( var item in _disposableObjects )
+        {
+          try
+          {
+            item.Dispose();
+          }
+          catch ( Exception e )
+          {
+            exceptions.Add( e );
+          }
+        }
+
+        if ( exceptions.Any() )
+          throw new AggregateException( exceptions );
+
+      }
+    }
   }
 }
