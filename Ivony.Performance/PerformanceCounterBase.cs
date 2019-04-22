@@ -32,6 +32,12 @@ namespace Ivony.Performance
     }
 
 
+    /// <summary>
+    /// 性能报告源名称
+    /// </summary>
+    public abstract string SourceName { get; }
+
+
 
     /// <summary>
     /// 创建性能报告

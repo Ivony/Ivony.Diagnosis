@@ -11,8 +11,15 @@ namespace Ivony.Performance
   public class PerformanceReportBase : IPerformanceReport
   {
 
-    protected PerformanceReportBase( DateTime begin, DateTime end )
+    /// <summary>
+    /// 创建 PerformanceReportBase 实例
+    /// </summary>
+    /// <param name="source">性能报告源</param>
+    /// <param name="begin">计数开始时间</param>
+    /// <param name="end">计数结束时间</param>
+    protected PerformanceReportBase( IPerformanceSource source, DateTime begin, DateTime end )
     {
+      Source = source;
       BeginTime = begin;
       EndTime = end;
 
@@ -20,6 +27,11 @@ namespace Ivony.Performance
       GetType().GetProperties( BindingFlags.Instance | BindingFlags.Public | BindingFlags.GetProperty );
 
     }
+
+    /// <summary>
+    /// 创建此性能报告的性能报告源
+    /// </summary>
+    public IPerformanceSource Source { get; }
 
     /// <summary>
     /// 开始时间
@@ -38,6 +50,10 @@ namespace Ivony.Performance
 
 
 
+    /// <summary>
+    /// 获取性能度量值
+    /// </summary>
+    /// <returns>性能度量值</returns>
     public virtual IReadOnlyDictionary<string, PerformanceMetric> GetMetrics()
     {
       lock ( sync )

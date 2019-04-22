@@ -37,7 +37,7 @@ namespace Microsoft.Extensions.DependencyInjection
       if ( builder.ApplicationServices.GetServices<IHostedService>().OfType<IPerformanceService>().Any() == false )
         throw new InvalidOperationException( "must register PerformanceService for IHostedService first." );
 
-      builder.UseMiddleware<HttpPerformanceMiddleware>( counter ?? new HttpPerformanceCounter() );
+      builder.UseMiddleware<HttpPerformanceMiddleware>( counter ?? new HttpPerformanceCounter("aspnetcore") );
       return builder;
 
     }

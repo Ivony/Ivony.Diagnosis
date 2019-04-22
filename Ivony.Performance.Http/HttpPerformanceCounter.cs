@@ -17,6 +17,25 @@ namespace Ivony.Performance.Http
   {
 
 
+
+    /// <summary>
+    /// 性能报告源名称
+    /// </summary>
+    public override string SourceName { get; }
+
+
+
+    /// <summary>
+    /// 创建 HTTP 性能计数器实例
+    /// </summary>
+    /// <param name="sourceName">源名称</param>
+    public HttpPerformanceCounter( string sourceName )
+    {
+      SourceName = sourceName;
+    }
+
+
+
     /// <summary>
     /// 当请求完成时调用此方法记录
     /// </summary>
@@ -30,7 +49,7 @@ namespace Ivony.Performance.Http
     private class Report : PerformanceReportBase, IHttpPerformanceReport
     {
 
-      public Report( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data ) : base( begin, end )
+      public Report( IPerformanceSource source, DateTime begin, DateTime end, (long elapsed, int statusCode)[] data ) : base( source, begin, end )
       {
 
         TotalRequests = data.Length;
@@ -102,7 +121,7 @@ namespace Ivony.Performance.Http
     protected override Task<IHttpPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
     {
 
-      return Task.Run( () => (IHttpPerformanceReport) new Report( begin, end, data ) );
+      return Task.Run( () => (IHttpPerformanceReport) new Report( this, begin, end, data ) );
     }
   }
 }

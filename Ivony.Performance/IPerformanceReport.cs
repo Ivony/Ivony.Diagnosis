@@ -21,6 +21,12 @@ namespace Ivony.Performance
     DateTime EndTime { get; }
 
 
+    /// <summary>
+    /// 获取性能报告源
+    /// </summary>
+    IPerformanceSource Source { get; }
+
+
 
     /// <summary>
     /// 获取所有指标值

@@ -20,10 +20,11 @@ namespace Ivony.Performance.Http
     /// <summary>
     /// 创建 HttpPerformanceDelegatingHandler 对象
     /// </summary>
-    /// <param name="handler"></param>
-    public HttpPerformanceDelegatingHandler( HttpMessageHandler handler ) : base( handler )
+    /// <param name="handler">实际处理 HTTP 请求的处理器</param>
+    /// <param name="sourceName">性能报告源名称</param>
+    public HttpPerformanceDelegatingHandler( HttpMessageHandler handler, string sourceName = null ) : base( handler )
     {
-      Counter = new HttpPerformanceCounter();
+      Counter = new HttpPerformanceCounter( sourceName ?? "httpclient" );
     }
 
     /// <summary>
