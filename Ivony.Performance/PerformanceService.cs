@@ -33,17 +33,6 @@ namespace Ivony.Performance
     public Task StartAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
 
-      if ( ServiceProvider.GetService<AutoRegisterAllPerformanceCollector>() != null )
-      {
-        foreach ( var service in ServiceProvider.GetServices( typeof( IPerformanceSource<> ) ) )
-        {
-          var performanceType = service.GetType().GetGenericArguments()[0];
-          var method = typeof( PerformanceServiceExtensions ).GetMethod( "Register" ).MakeGenericMethod( performanceType );
-
-          method.Invoke( null, new[] { this, service } );
-        }
-      }
-
       timer = new Timer( Interval.TotalMilliseconds );
       timer.Elapsed += SendReport;
       timer.Start();
@@ -113,6 +102,8 @@ namespace Ivony.Performance
 
     private IDictionary<object, IPerformanceSourceHost> hosts = new Dictionary<object, IPerformanceSourceHost>();
 
+    private ISet<IGlobalPerformanceCollector> globalCollectors = new HashSet<IGlobalPerformanceCollector>();
+
 
 
 
@@ -128,6 +119,10 @@ namespace Ivony.Performance
       var host = GetHost( source );
       return host.Register( collector );
     }
+
+
+
+
 
 
     private Host<TReport> GetHost<TReport>( IPerformanceSource<TReport> source ) where TReport : IPerformanceReport
@@ -150,25 +145,49 @@ namespace Ivony.Performance
     /// 由 Timer 对象定期调用，发送性能报告。
     /// </summary>
     /// <param name="sender">事件源</param>
-    /// <param name="e">时间参数</param>
-    protected virtual void SendReport( object sender, ElapsedEventArgs e )
+    /// <param name="_"></param>
+    protected virtual async void SendReport( object sender, ElapsedEventArgs _ )
     {
 
-      var now = DateTime.UtcNow;
+      var timestamp = DateTime.UtcNow;
       var hosts = this.hosts.Values.ToArray();
-      Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport( now ) ) ) )
-        .ContinueWith( task =>
-        {
-          if ( task.IsFaulted )
-            OnException( task.Exception );
-        } );
+
+      var collector = new List<IPerformanceReport>();
+
+      try
+      {
+        await Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport( timestamp, collector ) ) ) );
+      }
+      catch ( Exception e )
+      {
+        OnException( e );
+      }
+
+      await GlobalReportCollect( timestamp, collector );
+
+
+    }
+
+    private async Task GlobalReportCollect( DateTime timestamp, IReadOnlyList<IPerformanceReport> reports )
+    {
+      try
+      {
+
+        var collectors = ServiceProvider.GetServices<IGlobalPerformanceCollector>();
+        await Task.WhenAll( collectors.Select( item => item.CollectReportsAsync( this, timestamp, reports.ToArray() ) ) );
+      }
+      catch ( Exception e )
+      {
+        OnException( e );
+      }
+
     }
 
     /// <summary>
     /// 当发送性能报告出现异常时调用此方法
     /// </summary>
     /// <param name="exception">异常信息</param>
-    protected virtual void OnException( AggregateException exception )
+    protected virtual void OnException( Exception exception )
     {
       Logger.LogError( $"send performance report with error:\n{exception}" );
     }
@@ -195,7 +214,7 @@ namespace Ivony.Performance
 
     private interface IPerformanceSourceHost : IDisposable
     {
-      Task SendReport( DateTime timestamp );
+      Task SendReport( DateTime timestamp, ICollection<IPerformanceReport> globalCollector );
 
     }
 
@@ -220,9 +239,11 @@ namespace Ivony.Performance
       /// 向所有性能报告搜集器推送性能报告
       /// </summary>
       /// <returns>用于等待推送完成的 Task 对象</returns>
-      public virtual async Task SendReport(  DateTime timestamp )
+      public virtual async Task SendReport( DateTime timestamp, ICollection<IPerformanceReport> globalCollector )
       {
         var report = await Source.CreateReportAsync();
+        globalCollector.Add( report );
+
         await Task.WhenAll( registrations.Select( item => item.SendReportAsync( Service, timestamp, report ) ) );
       }
 

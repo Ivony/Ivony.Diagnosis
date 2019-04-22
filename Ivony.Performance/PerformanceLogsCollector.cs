@@ -33,6 +33,8 @@ namespace Ivony.Performance
     /// <summary>
     /// 发送性能报告
     /// </summary>
+    /// <param name="service">性能报告服务</param>
+    /// <param name="timestamp">时间戳</param>
     /// <param name="report">性能报告</param>
     /// <returns></returns>
     public Task CollectReportAsync( IPerformanceService service, DateTime timestamp, TReport report )
