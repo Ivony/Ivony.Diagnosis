@@ -44,8 +44,8 @@ namespace Ivony.Performance.Test.AspNet
 
       public IServiceProvider ConfigureServices( IServiceCollection services )
       {
-        services.AddSingleton( typeof( IPerformanceCollector<> ), typeof( PerformanceLogsCollector<> ) );
         services.AddPerformanceMonitor();
+        services.AddSingleton<IGlobalPerformanceCollector, PerformanceLogsCollector>();
         return services.BuildServiceProvider();
       }
     }

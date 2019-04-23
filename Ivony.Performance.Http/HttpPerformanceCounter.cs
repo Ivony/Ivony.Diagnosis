@@ -13,7 +13,7 @@ namespace Ivony.Performance.Http
   /// <summary>
   /// 定义 HTTP 性能计数器
   /// </summary>
-  public class HttpPerformanceCounter : PerformanceCounterBase<(long elapsed, int statusCode), IHttpPerformanceReport>
+  public class HttpPerformanceCounter : PerformanceCounterBase<(long elapsed, int statusCode)>
   {
 
 
@@ -118,10 +118,10 @@ namespace Ivony.Performance.Http
     /// <param name="end">结束时间</param>
     /// <param name="data">搜集到的数据</param>
     /// <returns>性能报告</returns>
-    protected override Task<IHttpPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
+    protected override Task<IPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, (long elapsed, int statusCode)[] data )
     {
 
-      return Task.Run( () => (IHttpPerformanceReport) new Report( this, begin, end, data ) );
+      return Task.Run( () => (IPerformanceReport) new Report( this, begin, end, data ) );
     }
   }
 }

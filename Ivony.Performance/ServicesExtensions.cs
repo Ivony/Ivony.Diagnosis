@@ -16,10 +16,12 @@ namespace Microsoft.Extensions.DependencyInjection
     /// 添加性能监控相关服务
     /// </summary>
     /// <param name="services">服务注册容器</param>
-    public static void AddPerformanceMonitor( this IServiceCollection services )
+    public static IServiceCollection AddPerformanceMonitor( this IServiceCollection services )
     {
       services.AddSingleton<IPerformanceService, PerformanceService>();
       services.AddSingleton<IHostedService>( serviceProvider => serviceProvider.GetRequiredService<IPerformanceService>() );
+
+      return services;
     }
 
   }

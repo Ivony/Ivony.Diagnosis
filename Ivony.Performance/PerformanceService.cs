@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -7,7 +8,7 @@ using System.Timers;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
+using Microsoft.Extensions.Logging.Abstractions;
 using Timer = System.Timers.Timer;
 
 namespace Ivony.Performance
@@ -24,6 +25,8 @@ namespace Ivony.Performance
 
     private Timer timer;
 
+    private ConcurrentDictionary<IPerformanceSource, Host> hosts = new ConcurrentDictionary<IPerformanceSource, Host>();
+
 
     /// <summary>
     /// 启动性能计数器服务
@@ -33,12 +36,27 @@ namespace Ivony.Performance
     public Task StartAsync( CancellationToken cancellationToken = default( CancellationToken ) )
     {
 
+
+      foreach ( var source in ServiceProvider.GetServices<IPerformanceSource>() )
+        Register( source );
+
+      globalCollectors = ServiceProvider.GetServices<IGlobalPerformanceCollector>().ToArray();
+
+
+
       timer = new Timer( Interval.TotalMilliseconds );
       timer.Elapsed += SendReport;
       timer.Start();
 
       return Task.CompletedTask;
     }
+
+
+    /// <summary>
+    /// 获取所有性能报告源
+    /// </summary>
+    public IEnumerable<IPerformanceSource> Sources => hosts.Keys;
+
 
 
     /// <summary>
@@ -80,7 +98,7 @@ namespace Ivony.Performance
     {
       ServiceProvider = serviceProvider;
       Interval = interval;
-      Logger = ServiceProvider.GetRequiredService<ILogger<PerformanceService>>();
+      Logger = ServiceProvider.GetService<ILogger<PerformanceService>>() ?? (ILogger) NullLogger.Instance;
     }
 
 
@@ -97,12 +115,10 @@ namespace Ivony.Performance
     /// <summary>
     /// 错误日志记录器
     /// </summary>
-    public ILogger<PerformanceService> Logger { get; }
+    public ILogger Logger { get; }
 
 
-    private IDictionary<object, IPerformanceSourceHost> hosts = new Dictionary<object, IPerformanceSourceHost>();
-
-    private ISet<IGlobalPerformanceCollector> globalCollectors = new HashSet<IGlobalPerformanceCollector>();
+    private IReadOnlyCollection<IGlobalPerformanceCollector> globalCollectors = new HashSet<IGlobalPerformanceCollector>();
 
 
 
@@ -110,34 +126,58 @@ namespace Ivony.Performance
     /// <summary>
     /// 注册一个性能报告搜集器
     /// </summary>
-    /// <typeparam name="TReport">性能报告类型</typeparam>
+    /// <param name="source">性能报告源</param>
+    /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
+    public IPerformanceCollectorRegistrationHost Register( IPerformanceSource source )
+    {
+
+      return hosts.GetOrAdd( source, CreateHost );
+
+    }
+
+
+
+    /// <summary>
+    /// 注册一个性能报告搜集器
+    /// </summary>
     /// <param name="source">性能报告源</param>
     /// <param name="collector">性能报告搜集器</param>
     /// <returns>返回一个 IDisposable 对象，用于取消注册性能报告搜集</returns>
-    public IDisposable Register<TReport>( IPerformanceSource<TReport> source, IPerformanceCollector<TReport> collector ) where TReport : IPerformanceReport
+    public IPerformanceCollectorRegistration Register( IPerformanceSource source, IPerformanceCollector collector )
     {
-      var host = GetHost( source );
+      var host = hosts.GetOrAdd( source, CreateHost );
       return host.Register( collector );
     }
 
 
 
-
-
-
-    private Host<TReport> GetHost<TReport>( IPerformanceSource<TReport> source ) where TReport : IPerformanceReport
+    private Host CreateHost( IPerformanceSource source )
     {
-      lock ( sync )
-      {
-        if ( disposed )
-          throw new ObjectDisposedException( "PerformanceSerivce" );
+      var factories = ServiceProvider.GetServices<IPerformanceCollectorFactory>();
+      var collectors = factories.SelectMany( factory => factory.GetReportCollectors( source ) );
 
-        if ( hosts.TryGetValue( source, out var host ) )
-          return (Host<TReport>) host;
+      return new Host( this, source, collectors );
 
-        return (Host<TReport>) (hosts[source] = new Host<TReport>( this, source ));
-      }
     }
+
+
+
+    /// <summary>
+    /// 获取注册在指定性能报告源的所有收集器
+    /// </summary>
+    /// <param name="source">性能报告源</param>
+    /// <returns></returns>
+    public IPerformanceCollectorRegistrationHost GetRegistrations( IPerformanceSource source )
+    {
+      if ( hosts.TryGetValue( source, out var host ) )
+        return host;
+
+      else
+        return null;
+
+    }
+
+
 
 
 
@@ -150,20 +190,30 @@ namespace Ivony.Performance
     {
 
       var timestamp = DateTime.UtcNow;
-      var hosts = this.hosts.Values.ToArray();
 
-      var collector = new List<IPerformanceReport>();
+      var list = hosts.Values.ToArray();
 
       try
       {
-        await Task.WhenAll( hosts.Select( item => Task.Run( () => item.SendReport( timestamp, collector ) ) ) );
+
+        var results = await Task.WhenAll( list.Select( async item => new { report = await item.CreateReportAsync(), host = item } ) );
+        results = results.Where( item => item.report != null ).ToArray();
+
+
+        var reports = results.Select( item => item.report ).ToArray();
+        await Task.WhenAll( results.Select( item => item.host.SendReport( timestamp, item.report ) ) );
+
+
+        await GlobalReportCollect( timestamp, reports );
+
+
       }
       catch ( Exception e )
       {
         OnException( e );
       }
 
-      await GlobalReportCollect( timestamp, collector );
+
 
 
     }
@@ -195,6 +245,7 @@ namespace Ivony.Performance
 
     private readonly object sync = new object();
     private bool disposed = false;
+    private IEnumerable<object> result;
 
     void IDisposable.Dispose()
     {
@@ -211,27 +262,57 @@ namespace Ivony.Performance
       }
     }
 
-
-    private interface IPerformanceSourceHost : IDisposable
-    {
-      Task SendReport( DateTime timestamp, ICollection<IPerformanceReport> globalCollector );
-
-    }
-
-    private class Host<TReport> : IPerformanceSourceHost where TReport : IPerformanceReport
+    private class Host : IPerformanceCollectorRegistrationHost
     {
 
-      public Host( PerformanceService service, IPerformanceSource<TReport> source )
+
+      private bool disposed = false;
+      private readonly HashSet<Registration> _registrations;
+      private readonly PerformanceService _service;
+
+
+      private readonly object _sync = new object();
+      private readonly string _name;
+      private readonly ILogger _logger;
+
+      public IPerformanceSource Source { get; }
+
+      public IPerformanceService Service => _service;
+
+      public Host( PerformanceService service, IPerformanceSource source, IEnumerable<IPerformanceCollector> collectors )
       {
-        Service = service;
         Source = source;
+
+        _service = service;
+        _registrations = new HashSet<Registration>( collectors.Select( item => new Registration( this, item ) ) );
+
+        _name = $"Ivony.Performance.PerformanceHost[{source.SourceName}]";
+        _logger = service.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger( _name ) ?? NullLogger.Instance;
+
       }
 
-      public PerformanceService Service { get; }
-      public IPerformanceSource<TReport> Source { get; }
 
-      private const string ObjectName = "PerformanceSourceHost";
-      private readonly object sync = new object();
+
+
+      public IReadOnlyList<IPerformanceCollectorRegistration> Registrations => _registrations.ToArray();
+
+
+      /// <summary>
+      /// 创建性能报告
+      /// </summary>
+      /// <returns>性能报告</returns>
+      public async Task<IPerformanceReport> CreateReportAsync()
+      {
+        try
+        {
+          return await Source.CreateReportAsync();
+        }
+        catch ( Exception e )
+        {
+          _logger.LogError( "unhandled exception in create report:" + e );
+          return null;
+        }
+      }
 
 
 
@@ -239,120 +320,96 @@ namespace Ivony.Performance
       /// 向所有性能报告搜集器推送性能报告
       /// </summary>
       /// <returns>用于等待推送完成的 Task 对象</returns>
-      public virtual async Task SendReport( DateTime timestamp, ICollection<IPerformanceReport> globalCollector )
+      public virtual async Task SendReport( DateTime timestamp, IPerformanceReport report )
       {
-        var report = await Source.CreateReportAsync();
-        globalCollector.Add( report );
+        try
+        {
 
-        await Task.WhenAll( registrations.Select( item => item.SendReportAsync( Service, timestamp, report ) ) );
+          Registration[] list;
+
+          lock ( _sync )
+          {
+            list = _registrations.ToArray();
+          }
+
+          await Task.WhenAll( list.Select( registration => registration.SendReportAsync( Service, timestamp, report ) ) );
+
+        }
+        catch ( Exception e )
+        {
+          _logger.LogError( "unhandled exception in send report:" + e );
+        }
       }
+
+
+
+
 
       /// <summary>
       /// 注册一个性能报告搜集器
       /// </summary>
       /// <param name="collector">性能报告搜集器</param>
       /// <returns>返回一个 IDisposable 对象，调用其 Dispose 方法来取消注册</returns>
-      public IDisposable Register( IPerformanceCollector<TReport> collector )
+      public IPerformanceCollectorRegistration Register( IPerformanceCollector collector )
       {
-        lock ( sync )
+        lock ( _sync )
         {
           if ( disposed )
-            throw new ObjectDisposedException( ObjectName );
+            throw new ObjectDisposedException( _name );
 
           var registration = new Registration( this, collector );
-          registrations.Add( registration );
+          _registrations.Add( registration );
           return registration;
         }
       }
 
 
-      /// <summary>
-      /// 注册多个性能报告搜集器
-      /// </summary>
-      /// <param name="collectors">性能报告搜集器列表</param>
-      /// <returns>返回一个 IDisposable 对象，调用其 Dispose 方法来取消注册</returns>
-      public IDisposable Register( params IPerformanceCollector<TReport>[] collectors )
-      {
-        lock ( sync )
-        {
-          if ( disposed )
-            throw new ObjectDisposedException( ObjectName );
-
-          var items = collectors.Select( item =>
-          {
-            var reg = new Registration( this, item );
-            registrations.Add( reg );
-            return reg;
-          } ).ToArray();
-
-
-          if ( items.Length == 1 )
-            return items[0];
-
-          else
-            return new RegistrationSet( items );
-        }
-      }
-
-
-      private bool disposed = false;
-      private HashSet<Registration> registrations = new HashSet<Registration>();
-
 
       public void Dispose()
       {
-        lock ( sync )
+        lock ( _sync )
         {
           disposed = true;
-          foreach ( var item in registrations.ToArray() )
-            item.Dispose();
-        }
-      }
-
-
-      private class RegistrationSet : IDisposable
-      {
-        private readonly Registration[] registrations;
-
-        public RegistrationSet( Registration[] registrations )
-        {
-          this.registrations = registrations;
-        }
-
-        public void Dispose()
-        {
-          foreach ( var item in registrations )
-            item.Dispose();
+          _service.RemoveHost( this );
+          _registrations.Clear();
         }
       }
 
 
 
-      private class Registration : IDisposable
+      private class Registration : IPerformanceCollectorRegistration
       {
-        public Registration( Host<TReport> host, IPerformanceCollector<TReport> collector )
+        public Registration( Host host, IPerformanceCollector collector )
         {
           Host = host;
           Collector = collector;
         }
 
-        public Host<TReport> Host { get; }
+        public Host Host { get; }
 
-        public IPerformanceCollector<TReport> Collector { get; }
+
+        public IPerformanceSource Source => Host.Source;
+
+
+        public IPerformanceCollector Collector { get; }
 
 
         public void Dispose()
         {
-          Host.registrations.Remove( this );
+          Host._registrations.Remove( this );
         }
 
-        public Task SendReportAsync( IPerformanceService service, DateTime timestamp, TReport report )
+        public Task SendReportAsync( IPerformanceService service, DateTime timestamp, IPerformanceReport report )
         {
           return Collector.CollectReportAsync( service, timestamp, report );
         }
       }
     }
 
+    private void RemoveHost( Host host )
+    {
+      hosts.TryRemove( host.Source, out _ );
 
+    }
   }
 }

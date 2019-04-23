@@ -9,8 +9,7 @@ namespace Ivony.Performance
   /// <summary>
   /// 定义性能报告收集器抽象
   /// </summary>
-  /// <typeparam name="TReport">性能报告类型</typeparam>
-  public interface IPerformanceCollector<TReport> where TReport : IPerformanceReport
+  public interface IPerformanceCollector
   {
     /// <summary>
     /// 收集性能报告
@@ -19,7 +18,7 @@ namespace Ivony.Performance
     /// <param name="timestamp">当前时间戳</param>
     /// <param name="report">性能报告</param>
     /// <returns></returns>
-    Task CollectReportAsync( IPerformanceService service, DateTime timestamp, TReport report );
+    Task CollectReportAsync( IPerformanceService service, DateTime timestamp, IPerformanceReport report );
 
   }
 

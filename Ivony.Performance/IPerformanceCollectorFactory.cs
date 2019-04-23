@@ -13,10 +13,9 @@ namespace Ivony.Performance
     /// <summary>
     /// 对指定的性能报告源创建搜集器 
     /// </summary>
-    /// <typeparam name="TReport">性能报告类型</typeparam>
     /// <param name="source">性能报告源</param>
     /// <returns>可以搜集这些性能报告的搜集器</returns>
-    IPerformanceCollector<TReport> GetReportCollector<TReport>( IPerformanceSource<TReport> source ) where TReport : IPerformanceReport;
+    IPerformanceCollector[] GetReportCollectors( IPerformanceSource source );
 
   }
 }

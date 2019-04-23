@@ -29,17 +29,27 @@ namespace Microsoft.Extensions.DependencyInjection
     /// 为当前 ASP.NET Core 管线启用性能计数器
     /// </summary>
     /// <param name="builder">ASP.NET 管线构建器</param>
-    /// <param name="counter">HTTP 性能计数器，若不提供则创建一个默认的</param>
     /// <returns>ASP.NET 管线构建器</returns>
-    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, HttpPerformanceCounter counter = null )
+    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder )
     {
-
-      if ( builder.ApplicationServices.GetServices<IHostedService>().OfType<IPerformanceService>().Any() == false )
-        throw new InvalidOperationException( "must register PerformanceService for IHostedService first." );
-
-      builder.UseMiddleware<HttpPerformanceMiddleware>( counter ?? new HttpPerformanceCounter("aspnetcore") );
-      return builder;
-
+      return UsePerformanceCounter( builder, new HttpPerformanceCounter( "aspnetcore" ) );
     }
+
+
+    /// <summary>
+    /// 为当前 ASP.NET Core 管线启用性能计数器
+    /// </summary>
+    /// <param name="builder">ASP.NET 管线构建器</param>
+    /// <param name="counter">HTTP 性能计数器</param>
+    /// <returns>ASP.NET 管线构建器</returns>
+    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, HttpPerformanceCounter counter )
+    {
+      var service = builder.ApplicationServices.GetRequiredService<IPerformanceService>();
+      service.Register( counter );
+      builder.UseMiddleware<HttpPerformanceMiddleware>( counter );
+      return builder;
+    }
+
+
   }
 }

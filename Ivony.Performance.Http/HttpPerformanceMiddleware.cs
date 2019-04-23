@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Ivony.Performance;
@@ -9,25 +10,18 @@ using Microsoft.Extensions.Logging;
 
 namespace Ivony.Performance.Http
 {
-  public class HttpPerformanceMiddleware : IDisposable
+  public class HttpPerformanceMiddleware
   {
     private readonly RequestDelegate nextHandler;
 
     public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next, HttpPerformanceCounter counter )
     {
       _counter = counter;
-      _registry = service.Register( _counter );
       nextHandler = next;
     }
 
     private readonly HttpPerformanceCounter _counter;
 
-    private readonly IDisposable _registry;
-
-    void IDisposable.Dispose()
-    {
-      _registry.Dispose();
-    }
 
 
 

@@ -16,7 +16,7 @@ namespace Ivony.Performance
   /// <summary>
   /// 定义性能计数器基类型
   /// </summary>
-  public abstract class PerformanceCounterBase<TEntry, TReport> : IPerformanceSource<TReport> where TReport : IPerformanceReport
+  public abstract class PerformanceCounterBase<TEntry> : IPerformanceSource
   {
 
     private ConcurrentBag<TEntry> counter;
@@ -43,7 +43,7 @@ namespace Ivony.Performance
     /// 创建性能报告
     /// </summary>
     /// <returns></returns>
-    public virtual async Task<TReport> CreateReportAsync()
+    public virtual async Task<IPerformanceReport> CreateReportAsync()
     {
 
       var _counter = counter;
@@ -69,7 +69,7 @@ namespace Ivony.Performance
     /// <param name="end">结束时间</param>
     /// <param name="data">搜集到的数据</param>
     /// <returns>性能报告</returns>
-    protected abstract Task<TReport> CreateReportAsync( DateTime begin, DateTime end, TEntry[] data );
+    protected abstract Task<IPerformanceReport> CreateReportAsync( DateTime begin, DateTime end, TEntry[] data );
 
 
 
