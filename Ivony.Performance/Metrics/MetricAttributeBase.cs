@@ -37,11 +37,11 @@ namespace Ivony.Performance.Metrics
 
     public MetricAttribute( Type providerType )
     {
-      Instance = (IPerformanceMetricProvider) Activator.CreateInstance( providerType );
+      Instance = (IPerformanceProvider) Activator.CreateInstance( providerType );
 
     }
 
-    public IPerformanceMetricProvider Instance { get; }
+    public IPerformanceProvider Instance { get; }
 
     public override PerformanceMetric GetMetric( object report, PropertyInfo property )
     {

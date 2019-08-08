@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ivony.Performance.Metrics;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,9 +17,9 @@ namespace Ivony.Performance
     /// </summary>
     /// <param name="service">性能报告服务</param>
     /// <param name="timestamp">当前时间戳</param>
-    /// <param name="report">性能报告</param>
+    /// <param name="metrics">性能度量值列表</param>
     /// <returns></returns>
-    Task CollectReportAsync( IPerformanceService service, DateTime timestamp, IPerformanceReport report );
+    Task CollectReportAsync( IPerformanceService service, DateTime timestamp, PerformanceMetric metrics );
 
   }
 
@@ -33,9 +34,9 @@ namespace Ivony.Performance
     /// </summary>
     /// <param name="service">性能报告服务</param>
     /// <param name="timestamp">当前时间戳</param>
-    /// <param name="reports">性能报告</param>
+    /// <param name="metrics">性能度量值列表</param>
     /// <returns></returns>
-    Task CollectReportsAsync( IPerformanceService service, DateTime timestamp, IPerformanceReport[] reports );
+    Task CollectReportsAsync( IPerformanceService service, DateTime timestamp, PerformanceMetric[] metrics );
   }
 
 }
