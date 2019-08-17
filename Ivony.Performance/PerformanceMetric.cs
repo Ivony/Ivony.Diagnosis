@@ -14,34 +14,34 @@ namespace Ivony.Performance
     /// <summary>
     /// 创建性能度量值实例
     /// </summary>
-    /// <param name="category">指标所属类型</param>
-    /// <param name="metadata">指标元数据信息</param>
+    /// <param name="datasource">数据源</param>
+    /// <param name="aggregation">数据聚合方式</param>
     /// <param name="value">指标值</param>
     /// <param name="unit">单位</param>
-    public PerformanceMetric( string category, IReadOnlyDictionary<string, string> metadata, double value, PerformanceMetricUnit unit )
+    public PerformanceMetric( string datasource, string aggregation, double value, PerformanceMetricUnit unit )
     {
 
       if ( unit.FormatString == null )
         throw new ArgumentException( "must specify unit.", "unit" );
 
+      Datasource = datasource ?? throw new ArgumentNullException( nameof( datasource ) );
+      Aggregation = aggregation ?? throw new ArgumentNullException( nameof( aggregation ) );
 
-      Category = category ?? throw new ArgumentNullException( nameof( category ) );
-      Metadata = metadata ?? throw new ArgumentNullException( nameof( metadata ) );
       Value = value;
       Unit = unit;
     }
 
-
+    /// <summary>
+    /// 数据源
+    /// </summary>
+    public string Datasource { get; }
 
     /// <summary>
-    /// 指标所属类型
+    /// 数据聚合方式
     /// </summary>
-    public string Category { get; }
+    public string Aggregation { get; }
 
-    /// <summary>
-    /// 指标元数据信息
-    /// </summary>
-    public IReadOnlyDictionary<string, string> Metadata { get; }
+
 
 
     /// <summary>

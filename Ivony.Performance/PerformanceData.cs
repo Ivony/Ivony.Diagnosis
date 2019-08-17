@@ -9,13 +9,14 @@ namespace Ivony.Performance
   /// 定义性能计数项集合
   /// </summary>
   /// <typeparam name="TEntry">性能计数项类型</typeparam>
-  public class PerformanceEntries<TEntry> : IReadOnlyList<TEntry>
+  public class PerformanceData<TEntry> : IReadOnlyList<TEntry>
   {
     private readonly TEntry[] _entries;
 
 
-    internal PerformanceEntries( TEntry[] entries )
+    internal PerformanceData( string dataSource, TEntry[] entries )
     {
+      DataSource = dataSource;
       _entries = entries;
     }
 
@@ -30,6 +31,11 @@ namespace Ivony.Performance
     /// 计数项数量
     /// </summary>
     public int Count => ((IReadOnlyList<TEntry>) _entries).Count;
+
+    /// <summary>
+    /// 数据源
+    /// </summary>
+    public string DataSource { get; }
 
     /// <summary>
     /// 获取计数项枚举器
