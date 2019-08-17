@@ -55,9 +55,24 @@ namespace Ivony.Performance.Http
         TotalRequests = data.Length;
         if ( data.Length > 0 )
         {
-          AverageElapse = TimeSpan.FromMilliseconds( data.Average( entry => entry.elapsed ) );
-          MaxElapse = TimeSpan.FromMilliseconds( data.Max( entry => entry.elapsed ) );
-          MinElapse = TimeSpan.FromMilliseconds( data.Min( entry => entry.elapsed ) );
+
+
+          var sorted = data.OrderBy( item => item.elapsed ).ToArray();
+
+          AverageElapse = TimeSpan.FromMilliseconds( sorted.Average( entry => entry.elapsed ) );
+          MaxElapse = TimeSpan.FromMilliseconds( sorted.Last().elapsed );
+          MinElapse = TimeSpan.FromMilliseconds( sorted.First().elapsed );
+
+
+          var count = sorted.Length;
+
+          var c95 = (int) (count * 0.05);
+          var c99 = (int) (count * 0.01);
+
+          Percent95Elapsed = TimeSpan.FromMilliseconds( sorted.Skip( c95 ).First().elapsed );
+          Percent99Elapsed = TimeSpan.FromMilliseconds( sorted.Skip( c99 ).First().elapsed );
+
+
 
           HttpStatusReport = data.GroupBy( entry => entry.statusCode ).ToDictionary( item => item.Key, item => item.Count() );
 
@@ -81,11 +96,18 @@ namespace Ivony.Performance.Http
       [Unit_rps]
       public double RequestPerSecond { get; }
 
+      [Unit_pcs]
       public IDictionary<int, int> HttpStatusReport { get; }
 
 
       [Unit_ms]
       public TimeSpan AverageElapse { get; }
+
+      [Unit_ms]
+      public TimeSpan Percent99Elapsed { get; }
+
+      [Unit_ms]
+      public TimeSpan Percent95Elapsed { get; }
 
       [Unit_ms]
       public TimeSpan MaxElapse { get; }
