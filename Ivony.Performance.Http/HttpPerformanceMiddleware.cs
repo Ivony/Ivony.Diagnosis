@@ -14,13 +14,13 @@ namespace Ivony.Performance.Http
   {
     private readonly RequestDelegate nextHandler;
 
-    public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next, HttpPerformanceCounter counter )
+    public HttpPerformanceMiddleware( IPerformanceService service, RequestDelegate next, AspNetPerformanceCounter counter )
     {
       _counter = counter;
       nextHandler = next;
     }
 
-    private readonly HttpPerformanceCounter _counter;
+    private readonly AspNetPerformanceCounter _counter;
 
 
 
@@ -33,13 +33,10 @@ namespace Ivony.Performance.Http
     public async Task InvokeAsync( HttpContext context )
     {
 
-      var watch = new Stopwatch();
-      watch.Start();
+      _counter.Push( context );
+
       await nextHandler( context );
-      watch.Stop();
 
-
-      _counter.OnRequestCompleted( watch.ElapsedMilliseconds, context.Response.StatusCode );
     }
   }
 }

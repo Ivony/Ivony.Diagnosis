@@ -15,32 +15,43 @@ namespace Ivony.Performance
     private static readonly IReadOnlyDictionary<string, string> _empty = new ReadOnlyDictionary<string, string>( new Dictionary<string, string>() );
 
     /// <summary>
-    /// 得到一个计数指标值
+    /// 计数项个数
     /// </summary>
-    /// <typeparam name="TEntry">计数项类型</typeparam>
-    /// <param name="entries">性能计数项</param>
+    /// <typeparam name="T">计数项类型</typeparam>
+    /// <param name="data">性能数据</param>
     /// <returns></returns>
-    public static PerformanceMetric[] Count<TEntry>( PerformanceData<TEntry> data )
+    public static PerformanceMetric[] Count<T>( this IPerformanceData data )
     {
-      return new[] { new PerformanceMetric( data.DataSource, PerformanceAggregation.Count, data.Count, PerformanceMetricUnit.pcs ) };
+      return new[] { new PerformanceMetric( data.DataSource, Aggregation.Count, data.GetItems<T>().Count, PerformanceMetricUnit.pcs ) };
     }
 
     /// <summary>
-    /// 得到一个计时指标值
+    /// 每秒计数项
+    /// </summary>
+    /// <typeparam name="T">计数项类型</typeparam>
+    /// <param name="data">性能数据</param>
+    /// <returns></returns>
+    public static PerformanceMetric[] CountPerSecond<T>( IPerformanceData data )
+    {
+      return new[] { new PerformanceMetric( data.DataSource, Aggregation.Count, data.GetItems<T>().Count / data.TimeRange.TimeSpan.TotalSeconds, PerformanceMetricUnit.pcs ) };
+    }
+
+    /// <summary>
+    /// 最大最小和平均时延指标
     /// </summary>
     /// <typeparam name="TEntry">计数项类型</typeparam>
-    /// <param name="data">性能计数项</param>
+    /// <param name="data">性能数据</param>
     /// <param name="elapseProvider">从性能计数项中提取时延的方法</param>
     /// <returns></returns>
-    public static PerformanceMetric[] Elapsed<TEntry>( PerformanceData<TEntry> data, Func<TEntry, TimeSpan> elapseProvider )
+    public static PerformanceMetric[] Elapsed<T>( IPerformanceData data, Func<T, TimeSpan> elapseProvider )
     {
-      var elapsed = data.Select( item => elapseProvider( item ).TotalMilliseconds ).OrderBy( item => item );
+      var elapsed = data.GetItems<T>().Select( item => elapseProvider( item ).TotalMilliseconds ).OrderBy( item => item );
 
       return new[]
       {
-        new PerformanceMetric( data.DataSource, PerformanceAggregation.Max, elapsed.Last(), PerformanceMetricUnit.ms ),
-        new PerformanceMetric( data.DataSource, PerformanceAggregation.Min, elapsed.First(), PerformanceMetricUnit.ms ),
-        new PerformanceMetric( data.DataSource, PerformanceAggregation.Avg, elapsed.Average(), PerformanceMetricUnit.ms ),
+        new PerformanceMetric( data.DataSource, Aggregation.Max, elapsed.Last(), PerformanceMetricUnit.ms ),
+        new PerformanceMetric( data.DataSource, Aggregation.Min, elapsed.First(), PerformanceMetricUnit.ms ),
+        new PerformanceMetric( data.DataSource, Aggregation.Avg, elapsed.Average(), PerformanceMetricUnit.ms ),
       };
     }
 
@@ -50,15 +61,15 @@ namespace Ivony.Performance
     /// </summary>
     /// <typeparam name="TEntry">计数项类型</typeparam>
     /// <typeparam name="TValue">计数值类型</typeparam>
-    /// <param name="data">性能计数数据</param>
+    /// <param name="data">性能数据</param>
     /// <param name="baselines">要获取的基线值</param>
     /// <param name="valueProvider">计数值提供程序</param>
     /// <param name="comparer">用于比较两个计数值的比较器</param>
     /// <returns></returns>
-    public static IReadOnlyDictionary<int, TValue> Baseline<TEntry, TValue>( PerformanceData<TEntry> data, int[] baselines, Func<TEntry, TValue> valueProvider, IComparer<TValue> comparer )
+    public static IReadOnlyDictionary<int, TValue> Baseline<TEntry, TValue>( IPerformanceData data, int[] baselines, Func<TEntry, TValue> valueProvider, IComparer<TValue> comparer )
     {
 
-      var values = data.Select( item => valueProvider( item ) ).OrderBy( item => item, comparer );
+      var values = data.GetItems<TEntry>().Select( item => valueProvider( item ) ).OrderBy( item => item, comparer );
 
 
       var result = new Dictionary<int, TValue>();
@@ -68,7 +79,7 @@ namespace Ivony.Performance
         if ( item >= 100 || item <= 0 )
           throw new ArgumentOutOfRangeException( "percent must greater than 0 and less than 100", nameof( item ) );
 
-        var index = data.Count * item / 100;
+        var index = data.GetItems<TEntry>().Count * item / 100;
 
         result.Add( item, values.ElementAt( index ) );
       }

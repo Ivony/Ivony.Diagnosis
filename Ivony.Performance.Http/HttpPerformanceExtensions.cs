@@ -32,7 +32,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <returns>ASP.NET 管线构建器</returns>
     public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder )
     {
-      return UsePerformanceCounter( builder, new HttpPerformanceCounter( "aspnetcore" ) );
+      return UsePerformanceCounter( builder, new AspNetPerformanceCounter( "aspnetcore" ) );
     }
 
 
@@ -42,7 +42,7 @@ namespace Microsoft.Extensions.DependencyInjection
     /// <param name="builder">ASP.NET 管线构建器</param>
     /// <param name="counter">HTTP 性能计数器</param>
     /// <returns>ASP.NET 管线构建器</returns>
-    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, HttpPerformanceCounter counter )
+    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, AspNetPerformanceCounter counter )
     {
       var service = builder.ApplicationServices.GetRequiredService<IPerformanceService>();
       service.Register( counter );

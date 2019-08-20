@@ -1,54 +1,62 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 
 namespace Ivony.Performance
 {
-  /// <summary>
-  /// 定义性能计数项集合
-  /// </summary>
-  /// <typeparam name="TEntry">性能计数项类型</typeparam>
-  public class PerformanceData<TEntry> : IReadOnlyList<TEntry>
+  public class PerformanceData : IPerformanceData
   {
-    private readonly TEntry[] _entries;
+
+    private IReadOnlyList<object> _data;
 
 
-    internal PerformanceData( string dataSource, TEntry[] entries )
+    private ConcurrentDictionary<Type, object> _cache = new ConcurrentDictionary<Type, object>();
+
+
+    public PerformanceData( string dataSource, DateTimeRange timeRange, IEnumerable data )
     {
       DataSource = dataSource;
-      _entries = entries;
+      TimeRange = timeRange;
+
+      _data = data.Cast<object>().ToArray();
     }
 
-    /// <summary>
-    /// 获取指定索引的项
-    /// </summary>
-    /// <param name="index">索引位置</param>
-    /// <returns></returns>
-    public TEntry this[int index] => ((IReadOnlyList<TEntry>) _entries)[index];
 
     /// <summary>
-    /// 计数项数量
-    /// </summary>
-    public int Count => ((IReadOnlyList<TEntry>) _entries).Count;
-
-    /// <summary>
-    /// 数据源
+    /// 数据源名称
     /// </summary>
     public string DataSource { get; }
 
+
     /// <summary>
-    /// 获取计数项枚举器
+    /// 性能数据时间范围
     /// </summary>
+    public DateTimeRange TimeRange { get; }
+
+
+    /// <summary>
+    /// 获取指定类型的计数项
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public IEnumerator<TEntry> GetEnumerator()
+    public IReadOnlyList<T> GetItems<T>()
     {
-      return ((IReadOnlyList<TEntry>) _entries).GetEnumerator();
+      return (IReadOnlyList<T>) _cache.GetOrAdd( typeof( T ), _ => new ReadOnlyCollection<T>( _data.OfType<T>().ToArray() ) );
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
+
+    /// <summary>
+    /// 获取指定名称的性能数据
+    /// </summary>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public IPerformanceData GetPerformanceData( string name )
     {
-      return ((IReadOnlyList<TEntry>) _entries).GetEnumerator();
+      return null;
     }
   }
 }

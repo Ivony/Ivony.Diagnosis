@@ -2,9 +2,9 @@
 {
 
   /// <summary>
-  /// 性能聚合方式
+  /// 指标聚合方式
   /// </summary>
-  public static class PerformanceAggregation
+  public static class Aggregation
   {
 
     /// <summary>
@@ -23,14 +23,14 @@
     public const string Min = "Min";
 
     /// <summary>
-    /// 统计值
+    /// 求和值
     /// </summary>
-    public const string Sum = "Min";
+    public const string Sum = "Sum";
 
     /// <summary>
     /// 平均值
     /// </summary>
-    public const string Avg = "Min";
+    public const string Avg = "Avg";
 
   }
 }

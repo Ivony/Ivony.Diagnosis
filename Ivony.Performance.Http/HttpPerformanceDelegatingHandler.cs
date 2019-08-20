@@ -24,13 +24,13 @@ namespace Ivony.Performance.Http
     /// <param name="sourceName">性能报告源名称</param>
     public HttpPerformanceDelegatingHandler( HttpMessageHandler handler, string sourceName = null ) : base( handler )
     {
-      Counter = new HttpPerformanceCounter( sourceName ?? "httpclient" );
+      Counter = new AspNetPerformanceCounter( sourceName ?? "httpclient" );
     }
 
     /// <summary>
     /// 性能计数器
     /// </summary>
-    public HttpPerformanceCounter Counter { get; }
+    public AspNetPerformanceCounter Counter { get; }
 
 
     /// <summary>
