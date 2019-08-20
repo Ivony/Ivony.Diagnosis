@@ -20,9 +20,9 @@ namespace Ivony.Performance
     /// <typeparam name="T">计数项类型</typeparam>
     /// <param name="data">性能数据</param>
     /// <returns></returns>
-    public static PerformanceMetric[] Count<T>( this IPerformanceData data )
+    public static PerformanceMetric[] Count<T>( this IPerformanceData data, string name )
     {
-      return new[] { new PerformanceMetric( data.DataSource, Aggregation.Count, data.GetItems<T>().Count, PerformanceMetricUnit.pcs ) };
+      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, data.GetItems<T>().Count, PerformanceMetricUnit.pcs ) };
     }
 
     /// <summary>
@@ -31,28 +31,34 @@ namespace Ivony.Performance
     /// <typeparam name="T">计数项类型</typeparam>
     /// <param name="data">性能数据</param>
     /// <returns></returns>
-    public static PerformanceMetric[] CountPerSecond<T>( IPerformanceData data )
+    public static PerformanceMetric[] CountPerSecond<T>( this IPerformanceData data, string name )
     {
-      return new[] { new PerformanceMetric( data.DataSource, Aggregation.Count, data.GetItems<T>().Count / data.TimeRange.TimeSpan.TotalSeconds, PerformanceMetricUnit.pcs ) };
+      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, (double) data.GetItems<T>().Count / data.TimeRange.TimeSpan.TotalSeconds, PerformanceMetricUnit.rps ) };
     }
 
     /// <summary>
     /// 最大最小和平均时延指标
     /// </summary>
-    /// <typeparam name="TEntry">计数项类型</typeparam>
+    /// <typeparam name="T">计数项类型</typeparam>
     /// <param name="data">性能数据</param>
     /// <param name="elapseProvider">从性能计数项中提取时延的方法</param>
     /// <returns></returns>
-    public static PerformanceMetric[] Elapsed<T>( IPerformanceData data, Func<T, TimeSpan> elapseProvider )
+    public static PerformanceMetric[] Elapsed<T>( this IPerformanceData data, string name, Func<T, TimeSpan> elapseProvider )
     {
       var elapsed = data.GetItems<T>().Select( item => elapseProvider( item ).TotalMilliseconds ).OrderBy( item => item );
 
-      return new[]
+      if ( elapsed.Any() )
       {
-        new PerformanceMetric( data.DataSource, Aggregation.Max, elapsed.Last(), PerformanceMetricUnit.ms ),
-        new PerformanceMetric( data.DataSource, Aggregation.Min, elapsed.First(), PerformanceMetricUnit.ms ),
-        new PerformanceMetric( data.DataSource, Aggregation.Avg, elapsed.Average(), PerformanceMetricUnit.ms ),
-      };
+        return new[]
+        {
+          new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Max, elapsed.Last(), PerformanceMetricUnit.ms ),
+          new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Min, elapsed.First(), PerformanceMetricUnit.ms ),
+          new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Avg, elapsed.Average(), PerformanceMetricUnit.ms ),
+        };
+      }
+
+      else
+        return new PerformanceMetric[0];
     }
 
 
@@ -66,7 +72,7 @@ namespace Ivony.Performance
     /// <param name="valueProvider">计数值提供程序</param>
     /// <param name="comparer">用于比较两个计数值的比较器</param>
     /// <returns></returns>
-    public static IReadOnlyDictionary<int, TValue> Baseline<TEntry, TValue>( IPerformanceData data, int[] baselines, Func<TEntry, TValue> valueProvider, IComparer<TValue> comparer )
+    public static IReadOnlyDictionary<int, TValue> Baseline<TEntry, TValue>( this IPerformanceData data, int[] baselines, Func<TEntry, TValue> valueProvider, IComparer<TValue> comparer )
     {
 
       var values = data.GetItems<TEntry>().Select( item => valueProvider( item ) ).OrderBy( item => item, comparer );
