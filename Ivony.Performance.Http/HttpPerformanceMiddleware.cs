@@ -67,8 +67,8 @@ namespace Ivony.Performance.Http
 
     public IPerformanceData CreatePerformanceData( PerformanceContext context )
     {
-      var r = requests.Pack();
-      var c = completedRequests.Pack();
+      var r = requests.Dump();
+      var c = completedRequests.Dump();
 
       return new HttpPerformanceData( "aspnet core", context.TimeRange, r, c );
     }
@@ -108,6 +108,39 @@ namespace Ivony.Performance.Http
       /// </summary>
       public int StatusCode { get; set; }
 
+    }
+
+    private class HttpPerformanceData : IPerformanceData
+    {
+
+
+
+      private IReadOnlyList<HttpRequestEntry> _requests;
+      private IReadOnlyList<HttpCompletedRequestEntry> _completedRequests;
+
+      public HttpPerformanceData( string dataSource, DateTimeRange timeRange, IReadOnlyList<HttpRequestEntry> requests, IReadOnlyList<HttpCompletedRequestEntry> completedRequests )
+      {
+        DataSource = dataSource;
+        TimeRange = timeRange;
+
+        _requests = requests;
+        _completedRequests = completedRequests;
+
+      }
+
+      public string DataSource { get; }
+
+      public DateTimeRange TimeRange { get; }
+
+      public IReadOnlyList<T> GetEntries<T>()
+      {
+        
+      }
+
+      public IPerformanceData GetPerformanceData( string name )
+      {
+        return null;
+      }
     }
   }
 }

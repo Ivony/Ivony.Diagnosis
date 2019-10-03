@@ -22,7 +22,7 @@ namespace Ivony.Performance
     /// <returns></returns>
     public static PerformanceMetric[] Count<T>( this IPerformanceData data, string name )
     {
-      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, data.GetItems<T>().Count(), PerformanceMetricUnit.pcs ) };
+      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, data.GetEntries<T>().Count(), PerformanceMetricUnit.pcs ) };
     }
 
     /// <summary>
@@ -33,7 +33,7 @@ namespace Ivony.Performance
     /// <returns></returns>
     public static PerformanceMetric[] CountPerSecond<T>( this IPerformanceData data, string name )
     {
-      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, (double) data.GetItems<T>().Count() / data.TimeRange.TimeSpan.TotalSeconds, PerformanceMetricUnit.rps ) };
+      return new[] { new PerformanceMetric( $"{data.DataSource}.{name}", Aggregation.Count, (double) data.GetEntries<T>().Count() / data.TimeRange.TimeSpan.TotalSeconds, PerformanceMetricUnit.rps ) };
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ namespace Ivony.Performance
     /// <returns></returns>
     public static PerformanceMetric[] Elapsed<T>( this IPerformanceData data, string name, Func<T, TimeSpan> elapseProvider )
     {
-      var elapsed = data.GetItems<T>().Select( item => elapseProvider( item ).TotalMilliseconds ).OrderBy( item => item );
+      var elapsed = data.GetEntries<T>().Select( item => elapseProvider( item ).TotalMilliseconds ).OrderBy( item => item );
 
       if ( elapsed.Any() )
       {
@@ -75,7 +75,7 @@ namespace Ivony.Performance
     public static IReadOnlyDictionary<int, TValue> Baseline<TEntry, TValue>( this IPerformanceData data, int[] baselines, Func<TEntry, TValue> valueProvider, IComparer<TValue> comparer )
     {
 
-      var values = data.GetItems<TEntry>().Select( item => valueProvider( item ) ).OrderBy( item => item, comparer );
+      var values = data.GetEntries<TEntry>().Select( item => valueProvider( item ) ).OrderBy( item => item, comparer );
 
 
       var result = new Dictionary<int, TValue>();
@@ -85,7 +85,7 @@ namespace Ivony.Performance
         if ( item >= 100 || item <= 0 )
           throw new ArgumentOutOfRangeException( "percent must greater than 0 and less than 100", nameof( item ) );
 
-        var index = data.GetItems<TEntry>().Count() * item / 100;
+        var index = data.GetEntries<TEntry>().Count() * item / 100;
 
         result.Add( item, values.ElementAt( index ) );
       }

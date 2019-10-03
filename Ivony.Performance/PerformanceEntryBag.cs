@@ -37,7 +37,7 @@ namespace Ivony.Performance
     /// 返回目前已经搜集到的所有数据并清空容器
     /// </summary>
     /// <returns></returns>
-    public IReadOnlyList<T> Pack()
+    public IReadOnlyList<T> Dump()
     {
       return Interlocked.Exchange( ref collection, new ConcurrentBag<T>() ).ToArray();
     }
