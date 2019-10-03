@@ -1,55 +1,32 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Ivony.Performance.Http
 {
-  public class HttpPerformanceProvider : IPerformanceProvider<HttpRequestEntry>
+
+  /// <summary>
+  /// ASP.NET Core 性能指标提供程序
+  /// </summary>
+  public class HttpPerformanceProvider : IPerformanceProvider<HttpPerformanceData>
   {
-    public PerformanceMetric[] GetMetrics( HttpRequestEntry[] entries )
+
+    /// <summary>
+    /// 获取 ASP.NET Core 性能指标
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    public PerformanceMetric[] GetMetrics( HttpPerformanceData data )
     {
 
-      List<PerformanceMetric> metrics = new List<PerformanceMetric>( 10 );
+      var metrics = new List<PerformanceMetric>();
 
-      metrics.Add( Count( entries ) );
-      metrics.Add( Eplased( entries, item => item.Duration ) );
-      metrics.Add( ErrorRate( entries, item => item. ) );
-
-
-      TotalRequests = data.Length;
-      if ( data.Length > 0 )
-      {
-        AverageElapse = TimeSpan.FromMilliseconds( data.Average( entry => entry.elapsed ) );
-        MaxElapse = TimeSpan.FromMilliseconds( data.Max( entry => entry.elapsed ) );
-        MinElapse = TimeSpan.FromMilliseconds( data.Min( entry => entry.elapsed ) );
-
-        HttpStatusReport = data.GroupBy( entry => entry.statusCode ).ToDictionary( item => item.Key, item => item.Count() );
-
-        var errors = (double) data.Count( entry => entry.statusCode >= 300 );
-
-        ErrorRate = errors / TotalRequests;
-        var success = TotalRequests - errors;
-        RequestPerSecond = success / (EndTime - BeginTime).TotalSeconds;
-      }
-
-      else
-        HttpStatusReport = new Dictionary<int, int>();
-    }
-
-    private PerformanceMetric ErrorRate( HttpRequestEntry[] entries, Func<HttpRequestEntry, TimeSpan> elapseProvider )
-    {
-      throw new NotImplementedException();
-    }
+      metrics.AddRange( data.CountPerSecond<HttpRequestEntry>( "rps" ) );
+      metrics.AddRange( data.Elapsed<HttpCompletedRequestEntry>( "elapsed", entry => entry.Duration ) );
+      var baseline = data.Baseline<HttpCompletedRequestEntry, TimeSpan>( new[] { 99, 95, 90 }, entry => entry.Duration, Comparer<TimeSpan>.Default );
 
 
-
-    private PerformanceMetric Eplased( HttpRequestEntry[] entries, Func<HttpRequestEntry, TimeSpan> elapseProvider )
-    {
-      throw new NotImplementedException();
-    }
-
-    private PerformanceMetric Count( HttpRequestEntry[] entries )
-    {
       throw new NotImplementedException();
     }
   }

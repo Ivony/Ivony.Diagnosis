@@ -11,6 +11,15 @@ namespace Ivony.Performance
   public sealed class PerformanceContext
   {
 
+
+    public PerformanceContext( IPerformanceService service, DateTimeRange timeRange )
+    {
+
+      PerformanceService = service;
+      TimeRange = timeRange;
+
+    }
+
     /// <summary>
     /// 性能监控服务
     /// </summary>

@@ -8,7 +8,7 @@ namespace Ivony.Performance
   /// <summary>
   /// 性能度量提供程序
   /// </summary>
-  public interface IPerformanceProvider<T> where T : IPerformanceData
+  public interface IPerformanceProvider
   {
 
     /// <summary>
@@ -16,7 +16,7 @@ namespace Ivony.Performance
     /// </summary>
     /// <param name="data">性能数据</param>
     /// <returns>性能度量值</returns>
-    PerformanceMetric[] GetMetrics( T data );
+    PerformanceMetric[] GetMetrics( IPerformanceData data );
 
   }
 }

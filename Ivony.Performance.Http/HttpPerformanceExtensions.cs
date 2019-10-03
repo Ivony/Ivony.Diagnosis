@@ -14,38 +14,17 @@ namespace Microsoft.Extensions.DependencyInjection
 
 
     /// <summary>
-    /// 为 HttpMessageHandler 添加性能计数器
-    /// </summary>
-    /// <param name="handler">要添加性能计数器的 HttpMessageHandler</param>
-    /// <returns></returns>
-    public static HttpPerformanceDelegatingHandler WithPerformanceCounter( this HttpMessageHandler handler )
-    {
-      return new HttpPerformanceDelegatingHandler( handler );
-    }
-
-
-
-    /// <summary>
-    /// 为当前 ASP.NET Core 管线启用性能计数器
-    /// </summary>
-    /// <param name="builder">ASP.NET 管线构建器</param>
-    /// <returns>ASP.NET 管线构建器</returns>
-    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder )
-    {
-      return UsePerformanceCounter( builder, new AspNetPerformanceCounter( "aspnetcore" ) );
-    }
-
-
-    /// <summary>
     /// 为当前 ASP.NET Core 管线启用性能计数器
     /// </summary>
     /// <param name="builder">ASP.NET 管线构建器</param>
     /// <param name="counter">HTTP 性能计数器</param>
     /// <returns>ASP.NET 管线构建器</returns>
-    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, AspNetPerformanceCounter counter )
+    public static IApplicationBuilder UsePerformanceCounter( this IApplicationBuilder builder, HttpPerformanceCounter counter = null )
     {
-      var service = builder.ApplicationServices.GetRequiredService<IPerformanceService>();
-      service.Register( counter );
+
+
+
+      counter = new HttpPerformanceCounter();
       builder.UseMiddleware<HttpPerformanceMiddleware>( counter );
       return builder;
     }

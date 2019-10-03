@@ -1,20 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace Ivony.Performance
 {
 
-
   /// <summary>
-  /// 定义性能计数器
+  /// 定义一个性能计数器
   /// </summary>
-  public interface IPerformanceCounter
+  /// <typeparam name="T">性能计数项类型</typeparam>
+  public interface IPerformanceCounter<T>
   {
 
     /// <summary>
-    /// 搜集目前已经产生的性能数据
+    /// 记录一个性能计数项
     /// </summary>
-    /// <param name="context">性能报告上下文</param>
-    /// <returns>性能数据</returns>
-    IPerformanceData Collect( PerformanceContext context );
+    /// <param name="entry">性能计数项</param>
+    void Collect( T entry );
   }
 }

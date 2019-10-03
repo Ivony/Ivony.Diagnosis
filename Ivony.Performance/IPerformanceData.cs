@@ -32,7 +32,7 @@ namespace Ivony.Performance
     /// <summary>
     /// 获取指定类型的计数项
     /// </summary>
-    IReadOnlyList<T> GetItems<T>();
+    IEnumerable<T> GetItems<T>();
 
   }
 }

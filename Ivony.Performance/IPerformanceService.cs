@@ -1,51 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.Extensions.Hosting;
+using System.Text;
 
 namespace Ivony.Performance
 {
-
-  /// <summary>
-  /// 定义性能监控服务
-  /// </summary>
-  public interface IPerformanceService : IHostedService, IDisposable
+  public interface IPerformanceService
   {
 
-
     /// <summary>
-    /// 系统服务提供程序
+    /// 获取所有性能数据源
     /// </summary>
-    IServiceProvider ServiceProvider { get; }
-
+    IPerformanceSource[] PerformanceSources { get; }
+    
     /// <summary>
-    /// 注册一个性能报告源
+    /// 获取所有性能指标搜集器
     /// </summary>
-    /// <param name="source">性能报告源</param>
-    /// <returns></returns>
-    IPerformanceCollectorRegistrationHost Register( IPerformanceSource source );
+    IPerformanceCollector[] PerformanceCollectors { get; }
 
-    /// <summary>
-    /// 注册一个性能报告搜集器
-    /// </summary>
-    /// <param name="source">性能报告源</param>
-    /// <param name="collector">性能报告搜集器</param>
-    /// <returns></returns>
-    IPerformanceCollectorRegistration Register( IPerformanceSource source, IPerformanceCollector collector );
-
-
-    /// <summary>
-    /// 获取所有性能报告源
-    /// </summary>
-    IEnumerable<IPerformanceSource> Sources { get; }
-
-
-
-    /// <summary>
-    /// 获取性能报告源注册的所有收集器
-    /// </summary>
-    /// <param name="source">性能报告源</param>
-    /// <returns>注册在其上的收集器</returns>
-    IPerformanceCollectorRegistrationHost GetRegistrations( IPerformanceSource source );
 
   }
 }
